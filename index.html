@@ -1212,6 +1212,7 @@ let currentQuery = '';
 let typedQuery   = '';    // what the user actually typed (restored when arrowing back past index 0)
 let debounceTimer = null;
 let acFocusIndex  = -1;   // keyboard focus in autocomplete
+let activeFilters = new Set(); // empty = "All"; otherwise a set of type ids
 
 // ── Nav cloning ───────────────────────────────────────────────────────
 function populateNavs() {
@@ -1394,24 +1395,37 @@ function renderPreview(productResults, contentResults, totalCount) {
 // ── Results page ──────────────────────────────────────────────────────
 function openResultsPage(query) {
   closeSearch();
+  activeFilters = new Set(); // reset filters on each new search
   document.getElementById('main-page').style.display    = 'none';
   document.getElementById('results-page').style.display = 'block';
   document.getElementById('results-title').textContent  = `Search results for "${query.toUpperCase()}"`;
   document.getElementById('results-search-input').value = query;
   document.getElementById('results-clear-btn').style.display = query ? 'flex' : 'none';
   window.scrollTo(0, 0);
-  renderResultsPage(query, 'all');
+  renderResultsPage(query);
 }
 
-function renderResultsPage(query, activeTab) {
-  const grouped   = searchAll(query);
-  const products  = grouped.product  || [];
-  const families  = grouped.family   || [];
-  const articles  = grouped.article  || [];
-  const faqs      = grouped.faq      || [];
-  const docs      = grouped.doc      || [];
+function toggleFilter(query, filterId) {
+  if (filterId === 'all') {
+    activeFilters = new Set();
+  } else {
+    if (activeFilters.has(filterId)) {
+      activeFilters.delete(filterId);
+    } else {
+      activeFilters.add(filterId);
+    }
+  }
+  renderResultsPage(query);
+}
+
+function renderResultsPage(query) {
+  const grouped    = searchAll(query);
+  const products   = grouped.product  || [];
+  const families   = grouped.family   || [];
+  const articles   = grouped.article  || [];
+  const faqs       = grouped.faq      || [];
+  const docs       = grouped.doc      || [];
   const totalCount = products.length + families.length + articles.length + faqs.length + docs.length;
-  const content   = grouped.article || [];
   const allContent = [...articles, ...faqs];
 
   const tabs = [
@@ -1422,13 +1436,16 @@ function renderResultsPage(query, activeTab) {
     { id:'doc',     label:'User documentation', count: docs.length },
   ].filter(t => t.count > 0 || t.id === 'all');
 
-  // Render tabs
-  document.getElementById('results-tabs').innerHTML = tabs.map(t =>
-    `<button class="results-tab-btn ${t.id===activeTab?'active':''}"
-             onclick="renderResultsPage(${JSON.stringify(query)}, '${t.id}')">
-       ${t.label} [${t.count}]
-     </button>`
-  ).join('');
+  const isAll = activeFilters.size === 0;
+
+  // Render tabs — "All" active when no filter selected; others active when in the set
+  document.getElementById('results-tabs').innerHTML = tabs.map(t => {
+    const isActive = t.id === 'all' ? isAll : activeFilters.has(t.id);
+    return `<button class="results-tab-btn ${isActive ? 'active' : ''}"
+               onclick="toggleFilter(${JSON.stringify(query)}, '${t.id}')">
+               ${t.label} [${t.count}]
+             </button>`;
+  }).join('');
 
   const el = document.getElementById('results-content');
 
@@ -1440,8 +1457,8 @@ function renderResultsPage(query, activeTab) {
     return;
   }
 
-  // ── ALL tab: stacked sections each with preview + "See all" ──────────
-  if (activeTab === 'all') {
+  // ── "All" view: stacked sections with up-to-6 preview + "See all" ────
+  if (isAll) {
     let html = '';
 
     if (products.length) {
@@ -1449,7 +1466,7 @@ function renderResultsPage(query, activeTab) {
       html += `<div class="results-section">
         <div class="results-section-hdr">
           <div class="results-section-title">Products <span>[${products.length}]</span></div>
-          ${products.length > 6 ? `<button class="results-see-all" onclick="renderResultsPage(${JSON.stringify(query)},'product')">See all &rsaquo;</button>` : ''}
+          ${products.length > 6 ? `<button class="results-see-all" onclick="toggleFilter(${JSON.stringify(query)},'product')">See all &rsaquo;</button>` : ''}
         </div>
         <div class="res-grid">${preview.map(renderResGridCard).join('')}</div>
       </div>`;
@@ -1460,7 +1477,7 @@ function renderResultsPage(query, activeTab) {
       html += `<div class="results-section">
         <div class="results-section-hdr">
           <div class="results-section-title">Product families <span>[${families.length}]</span></div>
-          ${families.length > 6 ? `<button class="results-see-all" onclick="renderResultsPage(${JSON.stringify(query)},'family')">See all &rsaquo;</button>` : ''}
+          ${families.length > 6 ? `<button class="results-see-all" onclick="toggleFilter(${JSON.stringify(query)},'family')">See all &rsaquo;</button>` : ''}
         </div>
         <div class="res-list-grid">${preview.map(renderResListRow).join('')}</div>
       </div>`;
@@ -1471,7 +1488,7 @@ function renderResultsPage(query, activeTab) {
       html += `<div class="results-section">
         <div class="results-section-hdr">
           <div class="results-section-title">Content <span>[${allContent.length}]</span></div>
-          ${allContent.length > 6 ? `<button class="results-see-all" onclick="renderResultsPage(${JSON.stringify(query)},'article')">See all &rsaquo;</button>` : ''}
+          ${allContent.length > 6 ? `<button class="results-see-all" onclick="toggleFilter(${JSON.stringify(query)},'article')">See all &rsaquo;</button>` : ''}
         </div>
         <div class="res-list-grid">${preview.map(renderResListRow).join('')}</div>
       </div>`;
@@ -1482,7 +1499,7 @@ function renderResultsPage(query, activeTab) {
       html += `<div class="results-section">
         <div class="results-section-hdr">
           <div class="results-section-title">User documentation <span>[${docs.length}]</span></div>
-          ${docs.length > 6 ? `<button class="results-see-all" onclick="renderResultsPage(${JSON.stringify(query)},'doc')">See all &rsaquo;</button>` : ''}
+          ${docs.length > 6 ? `<button class="results-see-all" onclick="toggleFilter(${JSON.stringify(query)},'doc')">See all &rsaquo;</button>` : ''}
         </div>
         <div class="res-list-grid">${preview.map(renderResListRow).join('')}</div>
       </div>`;
@@ -1492,24 +1509,52 @@ function renderResultsPage(query, activeTab) {
     return;
   }
 
-  // ── Individual tab ────────────────────────────────────────────────────
-  const tabItems = {
-    product: products, family: families,
-    article: allContent, doc: docs,
-  }[activeTab] || [];
+  // ── Filtered view: show full lists for each selected type ─────────────
+  let html = '';
 
-  if (!tabItems.length) {
-    el.innerHTML = `<div class="no-results">
-      <div class="no-results-title">No results for "${escHtml(query)}"</div>
+  if (activeFilters.has('product') && products.length) {
+    html += `<div class="results-section">
+      <div class="results-section-hdr">
+        <div class="results-section-title">Products <span>[${products.length}]</span></div>
+      </div>
+      <div class="res-grid">${products.map(renderResGridCard).join('')}</div>
     </div>`;
-    return;
   }
 
-  if (activeTab === 'product') {
-    el.innerHTML = `<div class="results-section"><div class="res-grid">${tabItems.map(renderResGridCard).join('')}</div></div>`;
-  } else {
-    el.innerHTML = `<div class="results-section"><div class="res-list-grid">${tabItems.map(renderResListRow).join('')}</div></div>`;
+  if (activeFilters.has('family') && families.length) {
+    html += `<div class="results-section">
+      <div class="results-section-hdr">
+        <div class="results-section-title">Product families <span>[${families.length}]</span></div>
+      </div>
+      <div class="res-list-grid">${families.map(renderResListRow).join('')}</div>
+    </div>`;
   }
+
+  if (activeFilters.has('article') && allContent.length) {
+    html += `<div class="results-section">
+      <div class="results-section-hdr">
+        <div class="results-section-title">Content <span>[${allContent.length}]</span></div>
+      </div>
+      <div class="res-list-grid">${allContent.map(renderResListRow).join('')}</div>
+    </div>`;
+  }
+
+  if (activeFilters.has('doc') && docs.length) {
+    html += `<div class="results-section">
+      <div class="results-section-hdr">
+        <div class="results-section-title">User documentation <span>[${docs.length}]</span></div>
+      </div>
+      <div class="res-list-grid">${docs.map(renderResListRow).join('')}</div>
+    </div>`;
+  }
+
+  if (!html) {
+    html = `<div class="no-results">
+      <div class="no-results-title">No results for the selected filters</div>
+    </div>`;
+  }
+
+  el.innerHTML = html;
 }
 
 function clearResultsSearch() {
@@ -1596,8 +1641,9 @@ document.addEventListener('DOMContentLoaded', () => {
       const q = e.target.value.trim();
       if (q) {
         currentQuery = q;
+        activeFilters = new Set();
         document.getElementById('results-title').textContent = `Search results for "${q.toUpperCase()}"`;
-        renderResultsPage(q, 'all');
+        renderResultsPage(q);
       }
     }
   });
