@@ -1,0 +1,1601 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Kemppi Search — Prototype</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/fuse.js/7.0.0/fuse.min.js"></script>
+<style>
+/* =================================================================
+   KEMPPI SEARCH PROTOTYPE — v2
+   ================================================================= */
+
+*, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+:root {
+  --orange:      #F26522;
+  --black:       #000000;
+  --overlay-bg:  #000000;
+  --text:        #FFFFFF;
+  --text-muted:  #888888;
+  --border:      rgba(255,255,255,0.12);
+  --nav-h:       84px;      /* exact kemppi.com nav height */
+  --px:          48px;      /* consistent horizontal padding */
+  --font:        'Inter', ui-sans-serif, system-ui, sans-serif;
+}
+
+body { font-family: var(--font); background: #f4f4f4; color: #1a1a1a; overflow-x: hidden; }
+
+
+/* =====================================================================
+   1. MAIN NAV  (matches kemppi.com exactly)
+   ===================================================================== */
+.site-nav {
+  background: var(--black);
+  height: var(--nav-h);
+  display: flex; align-items: center;
+  padding: 0 var(--px);
+  position: sticky; top: 0; z-index: 200;
+  /* subtle orange top-glow visible on kemppi.com */
+  box-shadow: inset 0 2px 0 rgba(242,101,34,0.25);
+}
+.nav-inner {
+  width: 100%; max-width: 1440px; margin: 0 auto;
+  display: flex; align-items: center;
+}
+.nav-logo {
+  flex-shrink: 0; margin-right: 56px; text-decoration: none;
+  display: flex; align-items: center;
+}
+.nav-logo img { height: 30px; width: auto; display: block; }
+
+.nav-links {
+  display: flex; align-items: center; gap: 0; list-style: none; flex: 1;
+}
+.nav-links li { position: relative; }
+.nav-links button {
+  background: none; border: none; color: white; font-family: var(--font);
+  font-size: 16px; font-weight: 400; cursor: pointer;
+  display: flex; align-items: center; gap: 5px;
+  padding: 0 16px; height: var(--nav-h); white-space: nowrap;
+  transition: opacity 0.15s;
+}
+.nav-links button:hover { opacity: 0.75; }
+.nav-links a.nav-plain {
+  color: white; text-decoration: none; font-size: 16px; font-weight: 400;
+  padding: 0 16px; height: var(--nav-h); display: flex; align-items: center;
+  transition: opacity 0.15s;
+}
+.nav-links a.nav-plain:hover { opacity: 0.75; }
+
+/* chevron – rotated to point down */
+.nav-chevron {
+  display: inline-block;
+  transform: rotate(90deg);
+  flex-shrink: 0;
+  opacity: 0.7;
+}
+
+.nav-right {
+  display: flex; align-items: center; gap: 20px; flex-shrink: 0;
+}
+.nav-search-btn {
+  background: none; border: none; color: white; cursor: pointer;
+  display: flex; align-items: center; padding: 4px;
+  transition: opacity 0.15s;
+}
+.nav-search-btn:hover { opacity: 0.7; }
+.nav-search-btn .icon-search { display: flex; }
+.nav-search-btn .icon-close  { display: none; }
+
+/* "Close" text button — hidden by default everywhere */
+.nav-close-btn {
+  display: none;
+  background: none; border: none; color: white; cursor: pointer;
+  font-family: var(--font); font-size: 16px; font-weight: 400;
+  padding: 4px 12px;
+  transition: opacity 0.15s;
+}
+.nav-close-btn:hover { opacity: 0.7; }
+
+/* When the overlay is open: strip the overlay nav down to logo + Close only */
+body.search-open #overlay-nav .nav-links      { display: none; }
+body.search-open #overlay-nav .nav-lang       { display: none; }
+body.search-open #overlay-nav .nav-search-btn { display: none; }
+body.search-open #overlay-nav .nav-close-btn  { display: flex; align-items: center; }
+/* Push Close to the far right now that nav-links no longer fills the middle */
+body.search-open #overlay-nav .nav-right      { margin-left: auto; }
+
+.nav-lang {
+  color: white; font-size: 16px; font-weight: 400; text-decoration: none;
+  white-space: nowrap; cursor: pointer;
+}
+
+
+/* =====================================================================
+   2. HERO  (matches kemppi.com homepage)
+   ===================================================================== */
+.hero {
+  position: relative; overflow: hidden;
+  width: 100%;
+  /* height: min(56.25vw, 810px) gives 16:9 below 1440px and caps at 810px above.
+     Width stays 100% at all times because height is vw-based, not aspect-ratio-based.
+     (aspect-ratio + max-height would back-solve width to 1440px — that's the old bug) */
+  height: min(56.25vw, 810px);
+  background: #000;
+}
+.hero-img {
+  position: absolute; inset: 0;
+  width: 100%; height: 100%; object-fit: cover; object-position: center 20%;
+  display: block; opacity: 0.85;
+}
+/* Gradient overlay so text is readable */
+.hero-overlay {
+  position: absolute; inset: 0;
+  background: linear-gradient(to right, rgba(0,0,0,0.72) 0%, rgba(0,0,0,0.25) 50%, transparent 80%);
+}
+
+/* Centering wrapper mirrors .nav-inner exactly:
+   full-width outer with padding + max-width inner = logo always lines up */
+.hero-content {
+  position: absolute; inset: 0;
+  display: flex; flex-direction: column; justify-content: flex-end;
+}
+.hero-content-inner {
+  width: 100%; max-width: 1440px; margin: 0 auto;
+  padding: 0 var(--px) 60px;
+}
+/* Wide enough that H1 stays on 2 lines even at the 80px max font size */
+.hero-text { max-width: 620px; }
+@media (min-width: 1440px) {
+  .hero-text { max-width: 820px; }
+}
+
+.hero-title {
+  font-family: var(--font); font-size: clamp(40px, 5vw, 80px); font-weight: 700;
+  line-height: 1.05; text-transform: uppercase; color: white;
+  letter-spacing: -0.01em;
+}
+.hero-title span { color: var(--orange); display: block; }
+
+
+/* =====================================================================
+   3. SEARCH OVERLAY
+   ===================================================================== */
+#search-overlay {
+  display: none; position: fixed; inset: 0;
+  background: var(--overlay-bg);
+  z-index: 500; overflow-y: auto; overflow-x: hidden;
+}
+#search-overlay.active { display: block; }
+
+/* Overlay uses SAME nav component — see HTML */
+.overlay-inner {
+  width: 100%; max-width: 1440px; margin: 0 auto; padding: 0 var(--px) 80px;
+}
+
+
+/* =====================================================================
+   4. SEARCH BAR + AUTOCOMPLETE  (unified bordered container)
+      Key insight from Figma: the bar and the dropdown share ONE border.
+   ===================================================================== */
+.search-container {
+  margin-top: 80px;
+  position: relative;
+}
+
+/* The single outer border wraps bar + dropdown together */
+.search-box {
+  border: 1px solid rgba(255,255,255,0.85);  /* white outline as per design */
+  background: var(--overlay-bg); /* same bg — blends with overlay */
+}
+
+.search-bar-row {
+  display: flex; align-items: center; gap: 14px;
+  padding: 0 18px; height: 54px;
+}
+/* Search icon doubles as a submit button */
+.search-bar-icon {
+  color: white; display: flex; align-items: center; flex-shrink: 0;
+  background: none; border: none; cursor: pointer; padding: 0;
+  transition: opacity 0.15s;
+}
+.search-bar-icon:hover { opacity: 0.7; }
+
+/* Suppress the native browser × on input[type=search] */
+#search-input::-webkit-search-cancel-button { display: none; }
+#search-input::-ms-clear { display: none; }
+#search-input {
+  flex: 1; background: none; border: none;
+  color: white; font-size: 17px; font-family: var(--font); outline: none;
+  caret-color: white;
+}
+#search-input::placeholder { color: rgba(255,255,255,0.32); }
+/* Clear ✕ icon button — visible only when input has text */
+.search-clear-btn {
+  background: none; border: none; cursor: pointer; flex-shrink: 0;
+  display: flex; align-items: center; justify-content: center;
+  color: #9CA3AF; padding: 2px 10px 2px 4px;
+  transition: color 0.15s;
+}
+.search-clear-btn:hover { color: #ffffff; }
+.search-clear-btn svg { display: block; }
+
+/* Modal close (×) button */
+.search-close-btn {
+  background: none; border: none; color: rgba(255,255,255,0.7);
+  cursor: pointer; font-size: 22px; line-height: 1;
+  display: flex; align-items: center; flex-shrink: 0;
+  transition: color 0.15s; padding: 2px;
+}
+.search-close-btn:hover { color: white; }
+
+/* Divider between bar and dropdown list */
+.search-divider { height: 1px; background: rgba(255,255,255,0.12); }
+
+
+/* =====================================================================
+   5. AUTOCOMPLETE LIST  (no icons, keyboard-navigable)
+   ===================================================================== */
+#autocomplete-list {
+  list-style: none;
+  /* visible only when dropdown is open */
+}
+#autocomplete-list li { border-bottom: 1px solid rgba(255,255,255,0.08); }
+#autocomplete-list li:last-child { border-bottom: none; }
+
+#autocomplete-list li button {
+  width: 100%; text-align: left; background: none; border: none;
+  padding: 14px 18px;
+  color: rgba(255,255,255,0.6); font-size: 15px; font-family: var(--font);
+  cursor: pointer; transition: background 0.1s, color 0.1s;
+  display: block;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+#autocomplete-list li button:hover,
+#autocomplete-list li.ac-focused button {
+  background: #414141;
+  color: white;
+}
+
+
+/* =====================================================================
+   6. STATE 0 — Empty (Previous searches + Helpful links, full width)
+   ===================================================================== */
+#state-empty { display: none; padding: 48px 0 0; }
+
+.state-cols {
+  display: grid;
+  /* Two equal columns across the full content width */
+  grid-template-columns: 1fr 1fr;
+  gap: 64px;
+  /* no max-width — fills the full content area */
+}
+/* Grid children must have min-width: 0 so flex/text truncation works inside them */
+.state-cols > div { min-width: 0; overflow: hidden; }
+/* body lg-bold */
+.state-section-label {
+  color: white; font-size: 18px; font-weight: 700; line-height: 1.5;
+  margin-bottom: 6px;
+  padding-bottom: 14px; border-bottom: 1px solid var(--border);
+}
+.prev-list, .links-list { list-style: none; width: 100%; overflow: hidden; }
+.prev-list li { border-bottom: 1px solid var(--border); overflow: hidden; }
+.prev-list li a {
+  display: block; padding: 13px 0;
+  color: var(--text); font-size: 15px;
+  text-decoration: underline; text-decoration-color: transparent;
+  text-underline-offset: 0.25em;
+  transition: text-decoration-color 0.15s;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.prev-list li a:hover { text-decoration-color: var(--orange); }
+.links-list li { border-bottom: 1px solid var(--border); overflow: hidden; }
+.links-list li a {
+  display: flex; align-items: baseline; gap: 0;
+  padding: 13px 0; text-decoration: none;
+  overflow: hidden; flex-wrap: nowrap;
+}
+.links-list li a:hover .link-title { text-decoration-color: var(--orange); }
+/* Title: white, normal weight — same size as desc */
+.link-title {
+  color: var(--text); font-size: 15px; font-weight: 400;
+  text-decoration: underline; text-decoration-color: transparent;
+  text-underline-offset: 0.25em;
+  transition: text-decoration-color 0.15s;
+  white-space: nowrap; flex-shrink: 0;
+}
+/* Description: same white as title, truncates when line is full */
+.link-desc {
+  color: var(--text); font-size: 15px;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  min-width: 0;
+}
+
+
+/* =====================================================================
+   STATE 2 — Rich preview panel
+   ===================================================================== */
+#state-preview { display: none; padding: 48px 0 48px; }
+.preview-cols { display: grid; grid-template-columns: 1fr 1fr; gap: 64px; }
+/* Same as .state-cols — grid children must be capped at their track width */
+.preview-cols > div { min-width: 0; overflow: hidden; }
+.preview-col-header {
+  display: flex; align-items: baseline; gap: 8px;
+  padding-bottom: 14px; border-bottom: 1px solid var(--border); margin-bottom: 6px;
+}
+.preview-col-title { color: white; font-size: 18px; font-weight: 700; line-height: 1.5; }
+.preview-col-count { color: var(--text-muted); font-size: 13px; align-self: center; }
+
+.product-list { list-style: none; width: 100%; overflow: hidden; }
+.product-card {
+  display: flex; gap: 16px; padding: 16px 0; width: 100%; overflow: hidden;
+  border-bottom: 1px solid var(--border); cursor: pointer;
+}
+.product-card:hover .pc-name { text-decoration-color: var(--orange); }
+.pc-img {
+  width: 112px; height: 112px; flex-shrink: 0;
+  background: #ffffff; border-radius: 3px;
+  display: flex; align-items: center; justify-content: center;
+  overflow: hidden; padding: 8px;
+}
+.pc-img img { width: 100%; height: 100%; object-fit: contain; display: block; transition: transform 0.2s ease; }
+.product-card:hover .pc-img img { transform: scale(1.05); }
+.pc-body { flex: 1; min-width: 0; }
+.pc-name { color: white; font-size: 16px; font-weight: 700; margin-bottom: 2px; text-decoration: underline; text-decoration-color: transparent; text-underline-offset: 0.25em; transition: text-decoration-color 0.15s; }
+.pc-category { color: rgba(255,255,255,0.5); font-size: 14px; font-weight: 400; margin-bottom: 5px; }
+.pc-desc { color: white; font-size: 14px; line-height: 1.55; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; }
+
+.suggestion-list { list-style: none; width: 100%; overflow: hidden; }
+.suggestion-list li { width: 100%; overflow: hidden; }
+.suggestion-item { padding: 20px 0; border-bottom: 1px solid var(--border); cursor: pointer; width: 100%; overflow: hidden; }
+.suggestion-item:hover .sug-title { text-decoration-color: var(--orange); }
+.sug-row { display: flex; align-items: center; gap: 8px; flex-wrap: nowrap; overflow: hidden; width: 100%; }
+.sug-title {
+  color: white; font-size: 16px;
+  text-decoration: underline; text-decoration-color: transparent;
+  text-underline-offset: 0.25em; transition: text-decoration-color 0.15s;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  min-width: 0; /* allow flex child to shrink below content width so ellipsis kicks in */
+}
+.tag {
+  display: inline-block; padding: 2px 8px;
+  border: 1px solid rgba(255,255,255,0.22); border-radius: 2px;
+  flex-shrink: 0; /* tags always visible, never truncated */
+  font-size: 11px; color: rgba(255,255,255,0.45); white-space: nowrap;
+}
+.tag-pdf     { border-color: rgba(242,101,34,0.6); color: var(--orange); }
+.tag-html    { border-color: rgba(74,158,255,0.6); color: #6ab4ff; }
+
+.see-all-wrap { margin-top: 28px; text-align: center; }
+.see-all-btn {
+  background: none; border: 1px solid rgba(255,255,255,0.3);
+  color: white; font-size: 14px; padding: 11px 32px;
+  cursor: pointer; font-family: var(--font); letter-spacing: 0.02em;
+  transition: border-color 0.15s, background 0.15s;
+}
+.see-all-btn:hover { border-color: white; background: rgba(255,255,255,0.06); }
+
+
+/* =====================================================================
+   FULL RESULTS PAGE  — clean white design matching Figma
+   ===================================================================== */
+#results-page { display: none; min-height: 100vh; background: white; }
+
+/* Header band */
+.results-header {
+  background: #FAFAFA;
+  padding: 96px var(--px) 32px;
+}
+.results-header-inner {
+  max-width: 1440px; margin: 0 auto;
+  display: flex; flex-direction: column; gap: 48px;
+}
+.results-title {
+  font-size: 30px; font-weight: 800; color: #111;
+  text-transform: uppercase; letter-spacing: -0.01em;
+}
+
+/* Search bar — light style */
+.results-search-bar {
+  display: flex; align-items: center; gap: 12px;
+  border: 1px solid #D1D5DB; padding: 0 16px; height: 52px;
+  background: white;
+}
+.results-search-bar input {
+  flex: 1; border: none; background: none;
+  font-size: 16px; font-family: var(--font); outline: none; color: #111;
+  -webkit-appearance: none; appearance: none;
+}
+.results-search-bar input::placeholder { color: #aaa; }
+/* hide native browser clear button on search inputs */
+.results-search-bar input::-webkit-search-cancel-button,
+.results-search-bar input::-webkit-search-decoration { display: none; }
+.results-clear {
+  background: none; border: none; color: #999; cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  width: 20px; height: 20px; flex-shrink: 0;
+  transition: color 0.15s;
+}
+.results-clear:hover { color: #333; }
+.results-clear svg { display: block; }
+
+/* Filter chips — shared borders, no double-stroke */
+.results-tabs {
+  display: flex; gap: 0; overflow-x: auto;
+  flex-wrap: wrap;
+}
+.results-tab-btn {
+  padding: 10px 24px; font-size: 14px; font-weight: 500;
+  cursor: pointer; background: white;
+  border: 1px solid #D1D5DB;
+  margin-right: -1px;
+  color: #111; font-family: var(--font);
+  white-space: nowrap; border-radius: 0;
+  position: relative; z-index: 0;
+  transition: background 0.15s, color 0.15s, border-color 0.15s;
+}
+.results-tab-btn:hover { background: #f5f5f5; z-index: 1; }
+.results-tab-btn.active {
+  background: #000; color: white; border-color: #000; z-index: 2;
+}
+
+/* Body */
+.results-body { padding: 48px var(--px); }
+.results-body-inner { max-width: 1440px; margin: 0 auto; }
+
+/* Section block */
+.results-section { margin-bottom: 64px; }
+.results-section-hdr {
+  display: flex; align-items: baseline; justify-content: space-between;
+  margin-bottom: 24px;
+}
+.results-section-title { font-size: 20px; font-weight: 700; color: #111; }
+.results-section-title span { font-weight: 400; color: #aaa; font-size: 15px; margin-left: 6px; }
+.results-see-all {
+  background: none; border: none; cursor: pointer; font-family: var(--font);
+  font-size: 14px; font-weight: 500; color: #111;
+  display: flex; align-items: center; gap: 4px;
+  text-decoration: underline; text-decoration-color: transparent;
+  text-underline-offset: 0.25em; transition: text-decoration-color 0.15s;
+}
+.results-see-all:hover { text-decoration-color: #111; }
+
+/* Product grid — 6 columns */
+.res-grid {
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  gap: 0;
+}
+.res-grid-card { padding: 0 16px 24px 0; cursor: pointer; }
+.res-grid-img {
+  width: 100%; aspect-ratio: 1/1; background: #f5f5f5;
+  display: flex; align-items: center; justify-content: center;
+  margin-bottom: 12px; overflow: hidden; padding: 8px;
+}
+.res-grid-img img {
+  width: 100%; height: 100%; object-fit: contain;
+  mix-blend-mode: multiply;
+  transition: transform 0.2s ease;
+}
+.res-grid-card:hover .res-grid-img img { transform: scale(1.05); }
+.res-grid-name {
+  font-size: 14px; font-weight: 700; color: #111; margin-bottom: 6px;
+  text-decoration: underline; text-decoration-color: transparent;
+  text-underline-offset: 0.25em; transition: text-decoration-color 0.15s;
+}
+.res-grid-card:hover .res-grid-name { text-decoration-color: #111; }
+.res-grid-cat  { font-size: 11px; color: #9CA3AF; font-weight: 500; text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 8px; }
+.res-grid-desc  { font-size: 13px; color: #555; line-height: 1.6; margin-bottom: 8px;
+  display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
+.res-grid-price { font-size: 13px; font-weight: 700; color: #111; }
+
+/* Families / content 2-col list */
+.res-list-grid { display: grid; grid-template-columns: 1fr 1fr; }
+.res-list-row {
+  display: flex; gap: 16px; padding: 20px 0;
+  border-top: 1px solid #eee; cursor: pointer; align-items: flex-start;
+}
+.res-list-row:hover .res-list-row-name { text-decoration-color: #111; }
+.res-list-thumb {
+  width: 96px; height: 72px; flex-shrink: 0; background: #f5f5f5;
+  display: flex; align-items: center; justify-content: center; overflow: hidden;
+}
+.res-list-thumb img { width: 100%; height: 100%; object-fit: contain; }
+.res-list-row-body { flex: 1; min-width: 0; }
+.res-list-row-name {
+  font-size: 15px; font-weight: 700; color: #111; margin-bottom: 5px;
+  text-decoration: underline; text-decoration-color: transparent;
+  text-underline-offset: 0.25em; transition: text-decoration-color 0.15s;
+}
+.res-list-row-desc { font-size: 13px; color: #666; line-height: 1.5;
+  display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+
+/* No results */
+.no-results { padding: 80px 0; text-align: center; }
+.no-results-title { font-size: 22px; font-weight: 700; color: #333; margin-bottom: 10px; }
+.no-results-sub   { font-size: 15px; color: #888; }
+
+
+/* =================================================================
+   MOBILE  ≤ 768px
+   ================================================================= */
+@media (max-width: 768px) {
+
+  /* ── Nav -------------------------------------------------------- */
+  :root { --nav-h: 60px; --px: 16px; }
+
+  .nav-links, .nav-lang { display: none; }
+  .nav-logo { margin-right: 0; flex: 1; }
+
+  /* ── Hero ------------------------------------------------------- */
+  /* Fill everything below the nav on mobile using dynamic viewport height
+     so the hero reaches the fold even as the browser chrome appears/hides */
+  .hero { height: calc(100dvh - var(--nav-h)); }
+
+  .nav-hamburger {
+    display: flex; align-items: center; justify-content: center;
+    background: none; border: none; color: white; cursor: pointer; padding: 4px;
+  }
+
+  /* Hamburger is mobile-only, so hide it in the overlay nav when search is open */
+  body.search-open #overlay-nav .nav-hamburger { display: none; }
+
+  /* ── Search overlay -------------------------------------------- */
+  .overlay-inner { padding: 0 var(--px) 80px; }
+  .search-container { margin-top: 40px; }
+
+  /* Tighten the search bar row */
+  .search-bar-row { height: 52px; padding: 0 14px; }
+  #search-input { font-size: 15px; }
+
+  /* Empty state: single column — 40px between each section */
+  .state-cols { grid-template-columns: 1fr; gap: 40px; }
+  #state-empty { padding: 40px 0 0; }
+
+  /* Preview: single column, no gap */
+  .preview-cols { grid-template-columns: 1fr; gap: 0; }
+  #state-preview { padding: 24px 0; }
+
+  /* Second preview column sits below first with a divider */
+  .preview-cols > div + div {
+    margin-top: 24px;
+    padding-top: 24px;
+    border-top: 1px solid var(--border);
+  }
+
+  /* Preview product cards — compact on mobile */
+  #preview-products-list .product-card {
+    gap: 12px; padding: 12px 0; align-items: center;
+  }
+  #preview-products-list .pc-img {
+    width: 112px; height: 112px; flex-shrink: 0; padding: 8px;
+  }
+  #preview-products-list .pc-name {
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    font-size: 15px;
+  }
+  #preview-products-list .pc-desc {
+    -webkit-line-clamp: 3;
+    font-size: 13px;
+  }
+
+  /* See all results — sticky bar pinned to bottom of overlay on mobile */
+  .see-all-wrap {
+    position: fixed; bottom: 0; left: 0; right: 0;
+    padding: 12px 16px calc(12px + env(safe-area-inset-bottom));
+    background: #000000;
+    border-top: 1px solid rgba(255,255,255,0.1);
+    margin-top: 0;
+    z-index: 10;
+  }
+  .see-all-btn {
+    width: 100%; padding: 14px 32px;
+    background: #ffffff; color: #000000; border-color: #ffffff;
+  }
+  .see-all-btn:hover { background: #e5e5e5; border-color: #e5e5e5; }
+
+  /* ── Results page header --------------------------------------- */
+  .results-header { padding: 24px var(--px) 20px; }
+  .results-header-inner { gap: 20px; }
+  .results-title { font-size: 22px; }
+
+  /* Filter chips — horizontal scroll, no wrap */
+  .results-tabs {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+  }
+  .results-tabs::-webkit-scrollbar { display: none; }
+  /* Prevent last chip being clipped at scroll edge */
+  .results-tabs::after {
+    content: ''; display: block; min-width: 16px; flex-shrink: 0;
+  }
+
+  /* ── Results body ---------------------------------------------- */
+  .results-body { padding: 24px var(--px); }
+
+  /* Product grid → 2 columns */
+  .res-grid { grid-template-columns: repeat(2, 1fr); }
+  .res-grid-card { padding: 0 8px 20px 0; }
+
+  /* List rows — smaller thumbnails */
+  .res-list-thumb { width: 72px; height: 72px; flex-shrink: 0; }
+  .res-list-row { gap: 12px; }
+
+  /* Section titles smaller */
+  .results-section-title { font-size: 17px; }
+
+  /* No-results padding */
+  .no-results { padding: 40px 0; }
+}
+
+/* Hide mobile-only elements on desktop */
+@media (min-width: 769px) {
+  .nav-hamburger { display: none; }
+  .nav-close-btn { display: none; }
+  .overlay-mobile-close { display: none; }
+}
+</style>
+</head>
+<body>
+
+<!-- =====================================================================
+     NAV COMPONENT (shared between page and overlay via JS clone)
+     ===================================================================== -->
+<template id="nav-tpl">
+  <div class="nav-inner">
+    <a class="nav-logo" href="#">
+      <img src="https://images.ctfassets.net/dm1yzlen4xm0/6j5yhKj2cGGIiKQ19bbiBY/be0924b5249c44c34bbd54cd0910ae2c/kemppi-logo.svg"
+           alt="Kemppi" width="120" height="30">
+    </a>
+    <ul class="nav-links">
+      <li>
+        <button>Products
+          <svg class="nav-chevron" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 6 11" width="10" height="10">
+            <path fill="currentColor" d="M4.163 5.5.226 1.563 1 .788 5.71 5.5 1 10.211l-.774-.774z"/>
+          </svg>
+        </button>
+      </li>
+      <li>
+        <button>Support
+          <svg class="nav-chevron" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 6 11" width="10" height="10">
+            <path fill="currentColor" d="M4.163 5.5.226 1.563 1 .788 5.71 5.5 1 10.211l-.774-.774z"/>
+          </svg>
+        </button>
+      </li>
+      <li>
+        <button>Blog, News &amp; Events
+          <svg class="nav-chevron" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 6 11" width="10" height="10">
+            <path fill="currentColor" d="M4.163 5.5.226 1.563 1 .788 5.71 5.5 1 10.211l-.774-.774z"/>
+          </svg>
+        </button>
+      </li>
+      <li>
+        <button>Company
+          <svg class="nav-chevron" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 6 11" width="10" height="10">
+            <path fill="currentColor" d="M4.163 5.5.226 1.563 1 .788 5.71 5.5 1 10.211l-.774-.774z"/>
+          </svg>
+        </button>
+      </li>
+      <li><a class="nav-plain" href="#">Contacts</a></li>
+    </ul>
+    <div class="nav-right">
+      <span class="nav-lang">Global – English</span>
+      <!-- Search toggle button (desktop) / search icon (mobile) -->
+      <button class="nav-search-btn" data-toggle-search aria-label="Search">
+        <span class="icon-search">
+          <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="none">
+            <path fill="currentColor" d="m21.53 20.47-4.693-4.694a8.26 8.26 0 1 0-1.06 1.06l4.693 4.695a.75.75 0 1 0 1.06-1.062M3.75 10.5a6.75 6.75 0 1 1 13.5 0 6.75 6.75 0 0 1-13.5 0"/>
+          </svg>
+        </span>
+        <span class="icon-close">
+          <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="none" viewBox="0 0 24 24">
+            <path fill="currentColor" d="M18.364 5.636a1 1 0 0 0-1.414 0L12 10.586 7.05 5.636a1 1 0 0 0-1.414 1.414L10.586 12l-4.95 4.95a1 1 0 0 0 1.414 1.414L12 13.414l4.95 4.95a1 1 0 0 0 1.414-1.414L13.414 12l4.95-4.95a1 1 0 0 0 0-1.414z"/>
+          </svg>
+        </span>
+      </button>
+      <!-- Hamburger — only visible on mobile -->
+      <button class="nav-hamburger" aria-label="Menu">
+        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="none" viewBox="0 0 24 24">
+          <path stroke="currentColor" stroke-width="2" stroke-linecap="round" d="M4 6h16M4 12h16M4 18h16"/>
+        </svg>
+      </button>
+      <!-- Close text — replaces hamburger + search icons on mobile when overlay is open -->
+      <button class="nav-close-btn" data-close-search>Close</button>
+    </div>
+  </div>
+</template>
+
+<!-- =====================================================================
+     MAIN PAGE
+     ===================================================================== -->
+<div id="main-page">
+<nav class="site-nav" id="main-nav"></nav>
+
+<!-- Hero — real kemppi.com imagery and text -->
+<section class="hero">
+  <img class="hero-img"
+       src="https://cdn-kemppi.contenthub.fi/cdn-cgi/image/format=webp,fit=cover,width=1440,height=690,quality=60/api/v1/cdn/4769749"
+       alt="Designed for Welders">
+  <div class="hero-overlay"></div>
+  <!-- Centering wrapper mirrors nav-inner so H1 stays aligned with logo -->
+  <div class="hero-content">
+    <div class="hero-content-inner">
+      <div class="hero-text">
+        <h1 class="hero-title">Designed for<span>Welders</span></h1>
+      </div>
+    </div>
+  </div>
+</section>
+</div><!-- /#main-page -->
+
+
+<!-- =====================================================================
+     SEARCH OVERLAY
+     ===================================================================== -->
+<div id="search-overlay" role="dialog" aria-modal="true" aria-label="Search">
+
+  <!-- Overlay nav — cloned from template by JS, identical to main nav -->
+  <nav class="site-nav" id="overlay-nav" style="position:relative;z-index:1;"></nav>
+
+  <div class="overlay-inner">
+
+    <!-- Unified search container: bar + autocomplete share one border -->
+    <div class="search-container">
+      <div class="search-box" id="search-box">
+
+        <!-- Search bar row -->
+        <div class="search-bar-row">
+          <!-- Search icon = submit button -->
+          <button class="search-bar-icon" id="search-submit-btn" aria-label="Search">
+            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" fill="none">
+              <path fill="currentColor" d="m16.15 15.35-3.52-3.52a6.2 6.2 0 1 0-.8.8l3.52 3.52a.56.56 0 1 0 .8-.8M2.81 7.87a5.06 5.06 0 1 1 10.12 0 5.06 5.06 0 0 1-10.12 0"/>
+            </svg>
+          </button>
+          <input type="search" id="search-input"
+                 placeholder="Search for products, families, instructions etc."
+                 autocomplete="off" spellcheck="false" aria-label="Search">
+          <!-- CLEAR: clears the input field only -->
+          <button class="search-clear-btn" id="search-clear-btn" style="display:none" aria-label="Clear search">
+            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+            </svg>
+          </button>
+        </div>
+
+        <!-- Autocomplete list (shown inline, inside the same border) -->
+        <div id="autocomplete-wrap" style="display:none">
+          <div class="search-divider"></div>
+          <ul id="autocomplete-list" role="listbox"></ul>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- STATE 0: Empty -->
+    <div id="state-empty">
+      <div class="state-cols">
+        <div>
+          <p class="state-section-label">Previous searches</p>
+          <ul class="prev-list">
+            <li><a href="#" onclick="fillSearch('Minarc T 223 ACDC');return false;">Minarc T 223 ACDC</a></li>
+            <li><a href="#" onclick="fillSearch('MinarcMig 220');return false;">MinarcMig 220</a></li>
+            <li><a href="#" onclick="fillSearch('TIG welding machine');return false;">TIG welding machine</a></li>
+            <li><a href="#" onclick="fillSearch('X5 FastMig');return false;">X5 FastMig</a></li>
+            <li><a href="#" onclick="fillSearch('welding helmet');return false;">Welding helmet</a></li>
+          </ul>
+        </div>
+        <div>
+          <p class="state-section-label">Helpful links</p>
+          <ul class="links-list">
+            <li><a href="#"><span class="link-title">Support:&nbsp;</span><span class="link-desc">Expert guidance available for troubleshooting and maintenance.</span></a></li>
+            <li><a href="#"><span class="link-title">Warranty:&nbsp;</span><span class="link-desc">Comprehensive coverage ensuring peace of mind with your purchase.</span></a></li>
+            <li><a href="#"><span class="link-title">Returns:&nbsp;</span><span class="link-desc">Hassle-free return policy for unsatisfactory products.</span></a></li>
+            <li><a href="#"><span class="link-title">My Kemppi:&nbsp;</span><span class="link-desc">Manage your product information and warranty.</span></a></li>
+            <li><a href="#"><span class="link-title">Userdoc:&nbsp;</span><span class="link-desc">Explore our welding courses for skill enhancement.</span></a></li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <!-- STATE 2: Rich preview -->
+    <div id="state-preview">
+      <div class="preview-cols" id="preview-cols">
+        <div id="preview-left-col">
+          <div class="preview-col-header">
+            <span class="preview-col-title">Products &amp; product families</span>
+            <span class="preview-col-count" id="preview-products-count"></span>
+          </div>
+          <ul class="product-list" id="preview-products-list"></ul>
+        </div>
+        <div>
+          <div class="preview-col-header">
+            <span class="preview-col-title">Search suggestions</span>
+            <span class="preview-col-count" id="preview-suggestions-count"></span>
+          </div>
+          <ul class="suggestion-list" id="preview-suggestions-list"></ul>
+        </div>
+      </div>
+      <div class="see-all-wrap">
+        <button class="see-all-btn" id="see-all-btn">See all results</button>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+
+<!-- =====================================================================
+     FULL RESULTS PAGE
+     ===================================================================== -->
+<div id="results-page">
+  <nav class="site-nav" id="results-nav" style="position:sticky;top:0;z-index:200;"></nav>
+  <div class="results-header">
+    <div class="results-header-inner">
+      <h1 class="results-title" id="results-title">Search results for ""</h1>
+      <div class="results-search-bar">
+        <!-- search icon -->
+        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#999" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0">
+          <circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+        </svg>
+        <input type="text" id="results-search-input" placeholder="Search kemppi.com" autocomplete="off">
+        <!-- custom clear button -->
+        <button class="results-clear" id="results-clear-btn" style="display:none" aria-label="Clear search">
+          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+          </svg>
+        </button>
+      </div>
+      <div class="results-tabs" id="results-tabs"></div>
+    </div>
+  </div>
+  <div class="results-body">
+    <div class="results-body-inner">
+      <div id="results-content"></div>
+    </div>
+  </div>
+</div>
+
+
+
+
+<!-- =====================================================================
+     PRODUCT ICON SVG
+     ===================================================================== -->
+<svg style="display:none" xmlns="http://www.w3.org/2000/svg">
+  <symbol id="icon-product" viewBox="0 0 64 64">
+    <rect x="8" y="20" width="48" height="30" rx="3" fill="currentColor" opacity="0.3"/>
+    <rect x="20" y="14" width="24" height="12" rx="2" fill="currentColor" opacity="0.5"/>
+    <circle cx="20" cy="52" r="5" fill="currentColor" opacity="0.4"/>
+    <circle cx="44" cy="52" r="5" fill="currentColor" opacity="0.4"/>
+  </symbol>
+</svg>
+
+
+<script>
+// =====================================================================
+//  DATA — REAL KEMPPI PRODUCT CATALOGUE (3 Brand Groups)
+// =====================================================================
+
+// ── PRODUCT FAMILIES ─────────────────────────────────────────────────
+// Each family belongs to a brandGroup. In autocomplete, family-level
+// suggestions always appear BEFORE individual product models.
+const FAMILIES = [
+  // — Minarc brand group (portable welders across TIG, MIG, Stick) ——————
+  { id:'minarc',           brandGroup:'minarc',  name:'Minarc',            weldType:'Stick (MMA)',  url:'/en/family/minarc',          desc:'Classic portable MMA stick welding machines. Light, robust and impact resistant, ideal for workshop and site environments.' },
+  { id:'minarc-evo',       brandGroup:'minarc',  name:'Minarc Evo',        weldType:'Stick (MMA)',  url:'/en/family/minarc-evo',      desc:'Powerful portable on-site stick welder. Compact design with durability for wherever work takes you.' },
+  { id:'minarc-t',         brandGroup:'minarc',  name:'Minarc T',          weldType:'TIG AC/DC',    url:'/en/family/minarc-t',        desc:'Portable multi-voltage machine for AC/DC TIG welding and professional weld cleaning. One machine, two jobs.' },
+  { id:'minarc-t-dc',      brandGroup:'minarc',  name:'Minarc T DC',       weldType:'TIG DC',       url:'/en/family/minarc-t-dc',     desc:'Portable multi-voltage DC TIG welder for professionals on the move. 9.6 kg, 220 A output.' },
+  { id:'minarctig',        brandGroup:'minarc',  name:'MinarcTig',         weldType:'TIG DC + MMA', url:'/en/family/minarctig',       desc:'Advanced dual-process TIG model with Minilog and pulsed arc function. TIG and MMA in one unit.' },
+  { id:'minarcmig-auto',   brandGroup:'minarc',  name:'MinarcMig Auto',    weldType:'MIG/MAG',      url:'/en/family/minarcmig-auto',  desc:'Portable, lightweight MIG/MAG welding machines combining convenience with high-performance welding.' },
+  // — Master brand group (professional compact welders) ————————————————
+  { id:'master-m',         brandGroup:'master',  name:'Master M',          weldType:'MIG/MAG',      url:'/en/family/master-m',        desc:'Compact premium MIG/MAG welder combining excellent performance with fast set-up and intelligent welding parameter control.' },
+  { id:'master-m-205-323', brandGroup:'master',  name:'Master M 205, 323', weldType:'MIG/MAG',      url:'/en/family/master-m-205-323',desc:'Portable multiprocess welders setting new standards for power and performance in a compact, lightweight design.' },
+  // — X5 FastMig (modular industrial MIG/MAG system) ———————————————————
+  { id:'x5-fastmig',       brandGroup:'x5',      name:'X5 FastMig',        weldType:'MIG/MAG',      url:'/en/family/x5-fastmig',      desc:'360-degree modular multi-process welder for high-performance MIG/MAG welding. Manual, synergic and pulse options.' },
+];
+
+// ── PRODUCTS ─────────────────────────────────────────────────────────
+// familyId links each product to a FAMILIES entry above.
+const PRODUCTS = [
+  // — Minarc (Stick MMA) ————————————————————————————————————————————
+  { id:'minarc-150',                familyId:'minarc',           name:'Minarc 150',                sku:'6102150',          category:'Power source',    desc:'1-phase, 140 A DC MMA welding power source. Portable and durable for workshop and site.' },
+  { id:'minarc-220',                familyId:'minarc',           name:'Minarc 220',                sku:'6102220',          category:'Power source',    desc:'3-phase, 220 A DC MMA welding power source. Truly portable for technicians on the move.' },
+  // — Minarc Evo (Stick MMA) ——————————————————————————————————————————
+  { id:'minarc-evo-180',            familyId:'minarc-evo',       name:'Minarc Evo 180',            sku:'61002180',         category:'Power source',    desc:'1-phase stick welder offering 180 A of welding power. Compact and portable.' },
+  { id:'minarc-evo-180-vrd',        familyId:'minarc-evo',       name:'Minarc Evo 180 VRD',        sku:'61002180VRD',      category:'Power source',    desc:'Stick (MMA) welder with Voltage Reduction Device for added site safety.' },
+  { id:'minarc-evo-180-dk',         familyId:'minarc-evo',       name:'Minarc Evo 180 DK',         sku:'61002180DK',       category:'Power source',    desc:'Stick (MMA) welder with mains plug for Danish markets.' },
+  { id:'minarc-evo-180-au',         familyId:'minarc-evo',       name:'Minarc Evo 180 AU',         sku:'61002180AU',       category:'Power source',    desc:'Stick (MMA) welder with mains plug for AU/NZ markets.' },
+  // — Minarc T (TIG AC/DC) ————————————————————————————————————————————
+  { id:'minarc-t-223-acdc-gm',      familyId:'minarc-t',         name:'Minarc T 223 ACDC GM',      sku:'MIT223ACDCGM',     category:'Power source',    desc:'Professional portable multi-voltage 110/230V power source for DC and AC TIG welding. Pulse, memory channels, remote control and MMA. 220 A @ 20% duty cycle.' },
+  { id:'minarc-t-223-acdc-gm-au',   familyId:'minarc-t',         name:'Minarc T 223 ACDC GM AU',   sku:'MIT223ACDCGMAU',   category:'Power source',    desc:'Professional portable AC/DC TIG power source for Australian markets. Multi-voltage 110/230V, VRD active.' },
+  // — Minarc T DC (TIG DC) ————————————————————————————————————————————
+  { id:'minarc-t-223-dc-gm',        familyId:'minarc-t-dc',      name:'Minarc T 223 DC GM',        sku:'MIT223DCGM',       category:'Power source',    desc:'Portable multi-voltage DC TIG welder. Generator compatible, four memory channels. 9.6 kg.' },
+  { id:'minarc-t-223-dc-mlp-gm',    familyId:'minarc-t-dc',      name:'Minarc T 223 DC MLP GM',    sku:'MIT223DCMLPGM',    category:'Power source',    desc:'Portable DC TIG with Minilog pulsed arc function. Multi-voltage, generator compatible.' },
+  { id:'minarc-t-223-dc-gm-au',     familyId:'minarc-t-dc',      name:'Minarc T 223 DC GM AU',     sku:'MIT223DCGMAU',     category:'Power source',    desc:'Portable DC TIG for Australian markets. Generator compatible, VRD active.' },
+  { id:'minarc-t-223-dc-mlp-gm-au', familyId:'minarc-t-dc',      name:'Minarc T 223 DC MLP GM AU', sku:'MIT223DCMLPGMAU',  category:'Power source',    desc:'Portable DC TIG with Minilog pulsed arc. Australian market model, VRD active.' },
+  // — MinarcTig (TIG DC + MMA) ————————————————————————————————————————
+  { id:'minarctig-250',              familyId:'minarctig',        name:'MinarcTig 250',             sku:'6109200',          category:'Welding machine', desc:'Dual-process basic model providing DC TIG and Stick (MMA) welding.' },
+  { id:'minarctig-250-mlp',          familyId:'minarctig',        name:'MinarcTig 250 MLP',         sku:'6109200MLP',       category:'Welding machine', desc:'Advanced dual-process model with Minilog and pulsed arc function. TIG and MMA in one machine.' },
+  // — MinarcMig Auto (MIG/MAG) ————————————————————————————————————————
+  { id:'minarcmig-190-auto',         familyId:'minarcmig-auto',   name:'MinarcMig 190 Auto',        sku:'61008190',         category:'Welding machine', desc:'14.2 kg portable MIG/MAG welder. 190 A at 35% duty cycle. Manual and synergic welding options.' },
+  { id:'minarcmig-220-auto',         familyId:'minarcmig-auto',   name:'MinarcMig 220 Auto',        sku:'61008220',         category:'Welding machine', desc:'14.2 kg portable MIG/MAG welder. 220 A at 20% duty cycle. Manual and synergic welding options.' },
+  { id:'minarcmig-190-auto-au',      familyId:'minarcmig-auto',   name:'MinarcMig 190 Auto AU',     sku:'61008190AU',       category:'Welding machine', desc:'Portable 190 A MIG/MAG welder with plug for AU/NZ markets.' },
+  { id:'minarcmig-220-auto-au',      familyId:'minarcmig-auto',   name:'MinarcMig 220 Auto AU',     sku:'61008220AU',       category:'Welding machine', desc:'Portable 220 A MIG/MAG welder with plug for AU/NZ markets.' },
+  // — Master M (MIG/MAG compact) ——————————————————————————————————————
+  { id:'master-m-353-g',             familyId:'master-m',         name:'Master M 353 G',            sku:'MSM353G',          category:'Welding machine', desc:'Compact MIG/MAG welder with manual and synergic (Auto) welding. 350 A at 40% duty cycle.' },
+  { id:'master-m-353-gm',            familyId:'master-m',         name:'Master M 353 GM',           sku:'MSM353GM',         category:'Welding machine', desc:'Compact MIG/MAG welder. Manual and synergic (Auto). 350 A at 40% duty cycle. Multi-voltage.' },
+  { id:'master-m-355-g',             familyId:'master-m',         name:'Master M 355 G',            sku:'MSM355G',          category:'Welding machine', desc:'Compact MIG/MAG welder with pulse and double pulse welding. 350 A at 40% duty cycle.' },
+  { id:'master-m-355-gm',            familyId:'master-m',         name:'Master M 355 GM',           sku:'MSM355GM',         category:'Welding machine', desc:'Compact MIG/MAG welder with pulse and double pulse. 350 A at 40% duty cycle. Multi-voltage.' },
+  { id:'master-m-358-g',             familyId:'master-m',         name:'Master M 358 G',            sku:'MSM358G',          category:'Welding machine', desc:'Compact MIG/MAG welder with pulse and double pulse welding. 350 A at 40% duty cycle.' },
+  { id:'master-m-358-gm',            familyId:'master-m',         name:'Master M 358 GM',           sku:'MSM358GM',         category:'Welding machine', desc:'Compact MIG/MAG welder with pulse and double pulse. 350 A at 40% duty cycle. Multi-voltage.' },
+  // — Master M 205, 323 (portable multiprocess) ——————————————————————
+  { id:'master-m-205-gm',            familyId:'master-m-205-323', name:'Master M 205 GM',           sku:'MSM205GM',         category:'Welding machine', desc:'Portable multiprocess welder. 200 A at 40% duty cycle. Manual, synergic and pulse MIG, MMA, DC TIG.' },
+  { id:'master-m-205-gm-au',         familyId:'master-m-205-323', name:'Master M 205 GM AU',        sku:'MSM205GMAU',       category:'Welding machine', desc:'Portable multiprocess welder for Australian markets. 200 A at 40% duty cycle.' },
+  { id:'master-m-323-gm',            familyId:'master-m-205-323', name:'Master M 323 GM',           sku:'MSM323GM',         category:'Welding machine', desc:'Portable multiprocess welder. 320 A at 40% duty cycle. Manual and synergic MIG, stick, DC TIG.' },
+  // — X5 FastMig Power Sources ————————————————————————————————————————
+  { id:'x5-ps-400',                  familyId:'x5-fastmig',       name:'X5 Power Source 400',       sku:'X5110400000',      category:'Power source',    desc:'Multi-process power source. 400 A at 60% duty cycle. Manual and synergic welding options.' },
+  { id:'x5-ps-400-wp',               familyId:'x5-fastmig',       name:'X5 Power Source 400 WP',    sku:'X5110400010',      category:'Power source',    desc:'Multi-process power source. 400 A at 60% duty cycle. Includes WiseSteel and WiseFusion processes.' },
+  { id:'x5-ps-400-pulse',            familyId:'x5-fastmig',       name:'X5 Power Source 400 Pulse', sku:'X5130400000',      category:'Power source',    desc:'Multi-process power source. 400 A at 60% duty cycle. Manual, synergic and pulse welding.' },
+  { id:'x5-ps-400-pulse-plus',       familyId:'x5-fastmig',       name:'X5 Power Source 400 Pulse+',sku:'X5100400000',      category:'Power source',    desc:'Multi-process power source. 400 A at 60% duty cycle. Manual, synergic, pulse and double pulse.' },
+  { id:'x5-ps-400-mv-wp',            familyId:'x5-fastmig',       name:'X5 Power Source 400 MV WP', sku:'X5110400110',      category:'Power source',    desc:'Multi-process multi-voltage power source. 400 A at 60% duty cycle. Includes WiseSteel and WiseFusion.' },
+  { id:'x5-ps-500',                  familyId:'x5-fastmig',       name:'X5 Power Source 500',       sku:'X5110500000',      category:'Power source',    desc:'Multi-process power source. 500 A at 60% duty cycle. Manual and synergic welding options.' },
+  { id:'x5-ps-500-wp',               familyId:'x5-fastmig',       name:'X5 Power Source 500 WP',    sku:'X5110500010',      category:'Power source',    desc:'Multi-process power source. 500 A at 60% duty cycle. Includes WiseSteel and WiseFusion processes.' },
+  { id:'x5-ps-500-pulse',            familyId:'x5-fastmig',       name:'X5 Power Source 500 Pulse', sku:'X5130500000',      category:'Power source',    desc:'Multi-process power source. 500 A at 60% duty cycle. Manual, synergic and pulse welding.' },
+  { id:'x5-ps-500-pulse-plus',       familyId:'x5-fastmig',       name:'X5 Power Source 500 Pulse+',sku:'X5100500000',      category:'Power source',    desc:'Multi-process power source. 500 A at 60% duty cycle. Manual, synergic, pulse and double pulse.' },
+  // — X5 FastMig Wire Feeders ——————————————————————————————————————————
+  { id:'x5-wf-300-ap',               familyId:'x5-fastmig',       name:'X5 Wire Feeder 300 AP',     sku:'X5240300000',      category:'Wire feeder',     desc:'Top-loading wire feeder with graphical 5.7" TFT display. For synergic and pulse MIG/MAG, TIG, MMA.' },
+  { id:'x5-wf-300-apc',              familyId:'x5-fastmig',       name:'X5 Wire Feeder 300 APC',    sku:'X5250300000',      category:'Wire feeder',     desc:'Top-loading wire feeder with graphical 5.7" TFT display. Automatic process control.' },
+  { id:'x5-wf-hd300-ap',             familyId:'x5-fastmig',       name:'X5 Wire Feeder HD300 AP',   sku:'X5270300000',      category:'Wire feeder',     desc:'Side-loading heavy duty wire feeder with 5.7" TFT display. For synergic MIG/MAG, TIG, MMA.' },
+  { id:'x5-wf-hd300-apc',            familyId:'x5-fastmig',       name:'X5 Wire Feeder HD300 APC',  sku:'X5280300000',      category:'Wire feeder',     desc:'Side-loading heavy duty wire feeder with 5.7" TFT display. Automatic process control.' },
+];
+
+// ── CONTENT ITEMS (articles, FAQs, docs) ─────────────────────────────
+const CONTENT_ITEMS = [
+  { id:'a1', type:'article', name:'Kemppi Minarc T 223 ACDC: A professional welder\'s hands-on test', category:'Article', tags:['Article'], desc:'Three professional welders put the Kemppi Minarc T 223 ACDC to the test. Real-world performance review.' },
+  { id:'a2', type:'article', name:'Kemppi launches a new TIG machine that also cleans welds',          category:'Article', tags:['Article'], desc:'Introducing the Minarc T 223 ACDC GM — AC/DC TIG welding and professional weld cleaning in one machine.' },
+  { id:'a3', type:'article', name:'Making weld cleaning easy and cost-efficient',                      category:'Article', tags:['Article'], desc:'Proper weld cleaning improves appearance and ensures strength, durability and overall quality.' },
+  { id:'a4', type:'article', name:'MinarcMig Auto machines packed with more welding power than ever',  category:'Article', tags:['Article'], desc:'The latest MinarcMig Auto 190 and 220 welding machines — more power in a lightweight portable form.' },
+  { id:'a5', type:'article', name:'WiseSteel – Quality and Productivity for MAG Welding',              category:'Article', tags:['Article'], desc:'WiseSteel MAG process reduces risk of defects at high welding speeds for structural steel.' },
+  { id:'a6', type:'article', name:'X5 FastMig: modular system for industrial MIG/MAG welding',        category:'Article', tags:['Article'], desc:'How the X5 FastMig modular architecture enables flexible configurations for any industrial welding setup.' },
+  { id:'a7', type:'article', name:'Master M review: compact MIG/MAG with professional punch',         category:'Article', tags:['Article'], desc:'A hands-on look at the Master M 355 GM and how it performs in workshop conditions.' },
+  { id:'q1', type:'faq', name:'Is Minarc T 223 ACDC gas-cooled or water-cooled?',               category:'FAQs', tags:['FAQs'], desc:'Minarc T 223 ACDC has a modular design and can be configured as either gas-cooled or water-cooled.' },
+  { id:'q2', type:'faq', name:'Does Minarc T 223 ACDC include processes besides TIG?',          category:'FAQs', tags:['FAQs'], desc:'Yes — TIG (DC and AC), MMA/stick welding, plus MAX WeldClean for cleaning oxides from weld surfaces.' },
+  { id:'q3', type:'faq', name:'Can you fit a remote control to the Minarc T 223 ACDC?',         category:'FAQs', tags:['FAQs'], desc:'Yes. Minarc T 223 ACDC offers both hand and foot remote control options including the FR41.' },
+  { id:'q4', type:'faq', name:'Do Minarc T 223 DC MLP models offer Pulse TIG welding?',         category:'FAQs', tags:['FAQs'], desc:'Yes. MLP models include pulsed TIG (Minilog); the standard DC models do not.' },
+  { id:'q5', type:'faq', name:'Is the MinarcMig Auto ready to weld out of the box?',            category:'FAQs', tags:['FAQs'], desc:'Yes. MinarcMig Auto models come ready assembled. The Flexlite GC torch is pre-mounted.' },
+  { id:'q6', type:'faq', name:'What is the difference between X5 Power Source 400 and 400 WP?', category:'FAQs', tags:['FAQs'], desc:'WP (Work Pack) models include pre-loaded WiseSteel and WiseFusion special welding processes.' },
+  { id:'q7', type:'faq', name:'How many work programs does Master M support?',                  category:'FAQs', tags:['FAQs'], desc:'Master M supports up to 100 user-stored welding parameter sets (memory channels).' },
+  { id:'q8', type:'faq', name:'Can Master M 355 be used with a SuperSnake wire feeder?',       category:'FAQs', tags:['FAQs'], desc:'Yes. Master M is compatible with the SuperSnake GTX sub-feeder for extended reach welding.' },
+  { id:'d1', type:'doc', name:'Minarc T 223 DC Operating Manual',           category:'User documentation', tags:['HTML','PDF'], desc:'Operating manual for Minarc T 223 DC TIG welding power source.' },
+  { id:'d2', type:'doc', name:'MinarcTig 250 / 250 MLP Operating Manual',   category:'User documentation', tags:['PDF'],        desc:'Operating manual for MinarcTig 250 and 250 MLP dual-process TIG machines.' },
+  { id:'d3', type:'doc', name:'MinarcMig 190 / 220 Auto Operating Manual',  category:'User documentation', tags:['PDF'],        desc:'Operating manual for MinarcMig 190 and 220 Auto portable MIG/MAG machines.' },
+  { id:'d4', type:'doc', name:'Minarc 150 / 220 Operating Manual',          category:'User documentation', tags:['PDF'],        desc:'Operating manual for Minarc 150 and 220 MMA welding machines.' },
+  { id:'d5', type:'doc', name:'X5 FastMig Power Source Operating Manual',   category:'User documentation', tags:['HTML','PDF'], desc:'Operating manual for X5 FastMig power sources.' },
+  { id:'d6', type:'doc', name:'X5 Wire Feeder Operating Manual',            category:'User documentation', tags:['PDF'],        desc:'Operating manual for X5 FastMig wire feeders (300 and HD300 series).' },
+  { id:'d7', type:'doc', name:'Master M Operating Manual',                  category:'User documentation', tags:['PDF'],        desc:'Operating manual for Master M MIG/MAG welding machines.' },
+  { id:'d8', type:'doc', name:'Minarc T 223 ACDC Operating Manual',         category:'User documentation', tags:['PDF'],        desc:'Operating manual for Minarc T 223 ACDC welding machine.' },
+];
+
+// ── Build CATALOG for Fuse.js (backward compat with render functions) ─
+const _famMap = Object.fromEntries(FAMILIES.map(f => [f.id, f]));
+const CATALOG = [
+  ...FAMILIES.map(f => ({ ...f, type:'family', category:'Product family', family:f.name, sku:'' })),
+  ...PRODUCTS.map(p => ({ ...p, type:'product', family: _famMap[p.familyId]?.name || '' })),
+  ...CONTENT_ITEMS,
+];
+const PRODUCTS_FAMILIES = CATALOG.filter(r => r.type === 'product' || r.type === 'family');
+
+
+// =====================================================================
+//  SEARCH CONFIG  ← TWEAK THIS SECTION
+// =====================================================================
+const SEARCH_CONFIG = {
+  keys: [
+    { name:'name',     weight:3.0 },
+    { name:'sku',      weight:2.0 },
+    { name:'family',   weight:1.5 },
+    { name:'weldType', weight:1.2 },
+    { name:'category', weight:1.0 },
+    { name:'desc',     weight:0.5 },
+  ],
+  threshold:       0.35,
+  distance:        200,
+  includeScore:    true,
+  minMatchCharLength: 2,
+  includeMatches:  true,
+};
+
+const PREVIEW_PRODUCT_LIMIT    = 3;
+const PREVIEW_SUGGESTION_LIMIT = 6;
+const AUTOCOMPLETE_LIMIT       = 6;
+const RICH_PREVIEW_THRESHOLD   = 2;
+const DEBOUNCE_MS              = 180;
+
+
+// =====================================================================
+//  SEARCH ENGINE
+// =====================================================================
+const fuseProductsFamilies = new Fuse(PRODUCTS_FAMILIES, SEARCH_CONFIG);
+const fuseContent          = new Fuse(CONTENT_ITEMS,     SEARCH_CONFIG);
+const fuseAll              = new Fuse(CATALOG,           SEARCH_CONFIG);
+
+function search(query) {
+  if (!query?.trim()) return { productResults:[], contentResults:[], totalCount:0 };
+  const productResults = fuseProductsFamilies.search(query);
+  const contentResults = fuseContent.search(query);
+  return { productResults, contentResults, totalCount: productResults.length + contentResults.length };
+}
+
+function getAutocompleteSuggestions(query) {
+  if (!query?.trim()) return [];
+  const q = query.trim().toLowerCase();
+
+  // ── Tier 1: Family-level matches (name starts with or contains query) ──
+  // Families ALWAYS appear before individual products in the dropdown.
+  const familyMatches = FAMILIES.filter(f => {
+    const fn = f.name.toLowerCase();
+    return fn.startsWith(q) || fn.includes(q);
+  }).sort((a, b) => {
+    // Exact prefix match ranks higher; then shorter name (more specific)
+    const aS = a.name.toLowerCase().startsWith(q) ? 0 : 1;
+    const bS = b.name.toLowerCase().startsWith(q) ? 0 : 1;
+    return aS !== bS ? aS - bS : a.name.length - b.name.length;
+  });
+
+  // ── Tier 2: Product-level matches ──────────────────────────────────────
+  // Products whose family was matched in Tier 1 rank higher than others.
+  const matchedFamilyIds = new Set(familyMatches.map(f => f.id));
+  const productMatches = PRODUCTS.filter(p => {
+    const pn = p.name.toLowerCase();
+    return pn.startsWith(q) || pn.includes(q) || p.sku.toLowerCase().startsWith(q);
+  }).sort((a, b) => {
+    const aF = matchedFamilyIds.has(a.familyId) ? 0 : 1;
+    const bF = matchedFamilyIds.has(b.familyId) ? 0 : 1;
+    if (aF !== bF) return aF - bF;
+    const aS = a.name.toLowerCase().startsWith(q) ? 0 : 1;
+    const bS = b.name.toLowerCase().startsWith(q) ? 0 : 1;
+    return aS !== bS ? aS - bS : a.name.length - b.name.length;
+  });
+
+  // ── Combine: up to 4 families then fill remaining slots with products ──
+  const maxFamilies = Math.min(4, familyMatches.length);
+  const maxProducts = AUTOCOMPLETE_LIMIT - maxFamilies;
+  const combined = [
+    ...familyMatches.slice(0, maxFamilies).map(f => f.name),
+    ...productMatches.slice(0, maxProducts).map(p => p.name),
+  ];
+
+  if (combined.length >= AUTOCOMPLETE_LIMIT) {
+    return [...new Set(combined)].slice(0, AUTOCOMPLETE_LIMIT);
+  }
+
+  // ── Fallback: Fuse.js fuzzy for typo tolerance (fills remaining slots) ─
+  const alreadyIn = new Set(combined.map(n => n.toLowerCase()));
+  const fuzeExtra = fuseAll.search(query, { limit: AUTOCOMPLETE_LIMIT })
+    .map(r => r.item.name)
+    .filter(n => !alreadyIn.has(n.toLowerCase()));
+
+  return [...new Set([...combined, ...fuzeExtra])].slice(0, AUTOCOMPLETE_LIMIT);
+}
+
+function searchAll(query) {
+  if (!query) return {};
+  const grouped = {};
+  for (const r of fuseAll.search(query)) {
+    const t = r.item.type;
+    if (!grouped[t]) grouped[t] = [];
+    grouped[t].push(r.item);
+  }
+  return grouped;
+}
+
+
+// =====================================================================
+//  UI — RENDERING
+// =====================================================================
+// Content Hub CDN image URLs per family (and per-product overrides)
+const _ch = (id, w=200) => `https://cdn-kemppi.contenthub.fi/cdn-cgi/image/format=webp,fit=scale-down,width=${w},quality=75/api/v1/cdn/${id}`;
+const FAMILY_IMAGES = {
+  'minarc':           _ch(2157016),
+  'minarc-evo':       _ch(2156866),
+  'minarc-t':         _ch(4527719),
+  'minarc-t-dc':      _ch(9863343),
+  'minarctig':        _ch(2160438),
+  'minarcmig-auto':   _ch(4519038),
+  'master-m':         _ch(2185466),
+  'master-m-205-323': _ch(2182268),
+  'x5-fastmig':       _ch(2191605),
+};
+// Per-product overrides (wire feeders get their own image)
+const PRODUCT_IMAGES = {
+  'x5-wf-300-ap':   _ch(2192230),
+  'x5-wf-300-apc':  _ch(2192230),
+  'x5-wf-hd300-ap': _ch(2192230),
+  'x5-wf-hd300-apc':_ch(2192230),
+};
+
+const productSVG = `<svg width="48" height="48" viewBox="0 0 64 64" fill="#F26522"><use href="#icon-product"/></svg>`;
+
+function tagHTML(tag) {
+  const cls = tag==='PDF' ? 'tag-pdf' : tag==='HTML' ? 'tag-html' : '';
+  return `<span class="tag ${cls}">${tag}</span>`;
+}
+
+function getItemImg(item, size=200) {
+  const url = PRODUCT_IMAGES[item.id] || FAMILY_IMAGES[item.familyId] || FAMILY_IMAGES[item.id];
+  if (!url) return null;
+  return url.replace(/width=\d+/, `width=${size}`);
+}
+
+function renderProductCard(item) {
+  const price = item.price ? `<div style="margin-top:6px;color:rgba(255,255,255,0.7);font-size:13px;font-weight:600">${item.price.toLocaleString()} €</div>` : '';
+  const imgUrl = getItemImg(item, 150);
+  const imgHtml = imgUrl
+    ? `<img src="${imgUrl}" alt="${item.name}" loading="lazy">`
+    : productSVG;
+  return `<li><div class="product-card">
+    <div class="pc-img">${imgHtml}</div>
+    <div class="pc-body">
+      <div class="pc-name">${item.name}</div>
+      <div class="pc-category">${item.category}</div>
+      <div class="pc-desc">${item.desc||''}</div>
+      ${price}
+    </div>
+  </div></li>`;
+}
+
+function renderSuggestionItem(item) {
+  const tags = (item.tags||[]).map(tagHTML).join('');
+  return `<li><div class="suggestion-item">
+    <div class="sug-row"><span class="sug-title">${item.name}</span>${tags}</div>
+  </div></li>`;
+}
+
+// Results page — grid card (products & families in grid view)
+function renderResGridCard(item) {
+  const imgUrl  = getItemImg(item, 300);
+  const imgHtml = imgUrl ? `<img src="${imgUrl}" alt="${escHtml(item.name)}" loading="lazy">` : productSVG.replace(/48/g,'56');
+  const price   = item.price ? `<div class="res-grid-price">${item.price.toLocaleString()} €</div>` : '';
+  return `<div class="res-grid-card">
+    <div class="res-grid-img">${imgHtml}</div>
+    <div class="res-grid-name">${escHtml(item.name)}</div>
+    <div class="res-grid-cat">${escHtml(item.category||'')}</div>
+    <div class="res-grid-desc">${escHtml(item.desc||'')}</div>
+    ${price}
+  </div>`;
+}
+
+// Results page — list row (families, content, docs)
+function renderResListRow(item) {
+  const imgUrl  = getItemImg(item, 200);
+  const imgHtml = imgUrl ? `<img src="${imgUrl}" alt="${escHtml(item.name)}" loading="lazy">` : '';
+  return `<div class="res-list-row">
+    <div class="res-list-thumb">${imgHtml}</div>
+    <div class="res-list-row-body">
+      <div class="res-list-row-name">${escHtml(item.name)}</div>
+      <div class="res-list-row-desc">${escHtml(item.desc||'')}</div>
+    </div>
+  </div>`;
+}
+
+
+// =====================================================================
+//  CONTROLLERS
+// =====================================================================
+let currentQuery = '';
+let typedQuery   = '';    // what the user actually typed (restored when arrowing back past index 0)
+let debounceTimer = null;
+let acFocusIndex  = -1;   // keyboard focus in autocomplete
+
+// ── Nav cloning ───────────────────────────────────────────────────────
+function populateNavs() {
+  const tpl = document.getElementById('nav-tpl').content;
+  ['main-nav','overlay-nav','results-nav'].forEach(id => {
+    const nav = document.getElementById(id);
+    nav.appendChild(tpl.cloneNode(true));
+    // Wire search buttons inside cloned nav
+    nav.querySelectorAll('[data-toggle-search]').forEach(btn => btn.addEventListener('click', toggleSearch));
+  });
+  // Wire mobile close buttons
+  document.querySelectorAll('[data-close-search]').forEach(btn => btn.addEventListener('click', closeSearch));
+}
+
+// ── Open / close ──────────────────────────────────────────────────────
+function toggleSearch() {
+  if (document.getElementById('search-overlay').classList.contains('active')) {
+    closeSearch();
+  } else {
+    openSearch();
+  }
+}
+
+function openSearch() {
+  document.getElementById('search-overlay').classList.add('active');
+  document.body.classList.add('search-open');
+  document.body.style.overflow = 'hidden';
+  setTimeout(() => document.getElementById('search-input').focus(), 60);
+  currentQuery = '';
+  typedQuery   = '';
+  document.getElementById('search-input').value = '';
+  showState('empty');
+}
+
+function closeSearch() {
+  document.getElementById('search-overlay').classList.remove('active');
+  document.body.classList.remove('search-open');
+  document.body.style.overflow = '';
+}
+
+function fillSearch(term) {
+  const input = document.getElementById('search-input');
+  input.value = term;
+  currentQuery = term;
+  typedQuery   = term;
+  document.getElementById('search-clear-btn').style.display = term ? 'flex' : 'none';
+  input.blur(); // dismiss on-screen keyboard on mobile
+  commitSearch(term);
+}
+
+// ── State management ─────────────────────────────────────────────────
+function showState(state) {
+  document.getElementById('state-empty').style.display   = (state==='empty')   ? 'block' : 'none';
+  document.getElementById('state-preview').style.display = (state==='preview') ? 'block' : 'none';
+  document.getElementById('autocomplete-wrap').style.display = (state==='autocomplete') ? 'block' : 'none';
+}
+
+// ── Keyboard navigation in autocomplete ──────────────────────────────
+// Chrome address-bar behaviour: arrow keys fill the focused suggestion into
+// the input; arrowing back past item 0 restores the user's original text.
+function acSetFocus(idx) {
+  // Cancel any pending debounce so the list isn't re-rendered (and acFocusIndex
+  // reset to -1) while the user is navigating with arrow keys.
+  clearTimeout(debounceTimer);
+
+  const items = document.querySelectorAll('#autocomplete-list li');
+  items.forEach((li,i) => li.classList.toggle('ac-focused', i===idx));
+  acFocusIndex = idx;
+
+  const input = document.getElementById('search-input');
+  if (idx >= 0) {
+    // Inline-fill the focused suggestion text into the input
+    const suggText = items[idx]?.querySelector('button')?.textContent?.trim();
+    if (suggText) {
+      input.value = suggText;
+      currentQuery = suggText;
+    }
+  } else {
+    // Back above the list — restore what the user actually typed
+    input.value = typedQuery;
+    currentQuery = typedQuery;
+  }
+}
+
+function acHandleKey(e) {
+  const items = document.querySelectorAll('#autocomplete-list li');
+  if (!items.length) return;
+
+  if (e.key === 'ArrowDown') {
+    e.preventDefault();
+    acSetFocus(Math.min(acFocusIndex + 1, items.length - 1));
+  } else if (e.key === 'ArrowUp') {
+    e.preventDefault();
+    // Allow going back to -1 so the user's typed text is restored
+    acSetFocus(Math.max(acFocusIndex - 1, -1));
+  }
+  // Enter is handled in the keydown listener below
+}
+
+// ── Input handler (debounced) ─────────────────────────────────────────
+function onSearchInput() {
+  const input = document.getElementById('search-input');
+  const query = input.value.trim();
+  currentQuery = query;
+  typedQuery   = query;   // keep track of what the user actually typed
+  acFocusIndex = -1;
+
+  // Show / hide the CLEAR button
+  document.getElementById('search-clear-btn').style.display = query ? 'inline-block' : 'none';
+
+  clearTimeout(debounceTimer);
+  debounceTimer = setTimeout(() => updateSearchUI(query), DEBOUNCE_MS);
+}
+
+// While typing: always show the autocomplete dropdown — never the preview.
+// The preview panel is only revealed on Enter or suggestion selection (commitSearch).
+function updateSearchUI(query) {
+  if (!query) { showState('empty'); return; }
+
+  const suggestions = getAutocompleteSuggestions(query);
+  renderAutocomplete(suggestions);
+  showState('autocomplete');
+}
+
+// ── Commit a search (Enter or suggestion click) ────────────────────────
+// This is the only place that shows the rich preview panel.
+function commitSearch(query) {
+  if (!query) return;
+  acFocusIndex = -1;
+  clearTimeout(debounceTimer);
+
+  const { productResults, contentResults, totalCount } = search(query);
+  if (totalCount > 0) {
+    renderPreview(productResults, contentResults, totalCount);
+    showState('preview');
+  } else {
+    // No matches — keep autocomplete open with "No results" message
+    renderAutocomplete([]);
+    showState('autocomplete');
+  }
+}
+
+function renderAutocomplete(suggestions) {
+  acFocusIndex = -1;
+  const list = document.getElementById('autocomplete-list');
+  if (!suggestions.length) {
+    list.innerHTML = `<li><button style="color:var(--text-muted);cursor:default;padding:14px 18px">No results found</button></li>`;
+    return;
+  }
+  list.innerHTML = suggestions.map(s =>
+    `<li><button data-suggestion="${escHtml(s)}">${escHtml(s)}</button></li>`
+  ).join('');
+  list.querySelectorAll('li button[data-suggestion]').forEach(btn => {
+    btn.addEventListener('mousedown', e => {
+      fillSearch(btn.dataset.suggestion);
+    });
+  });
+}
+
+function renderPreview(productResults, contentResults, totalCount) {
+  const hasProducts = productResults.length > 0;
+  const leftCol     = document.getElementById('preview-left-col');
+  const previewCols = document.getElementById('preview-cols');
+
+  // Show/hide left column; expand suggestions to full width when empty
+  leftCol.style.display              = hasProducts ? '' : 'none';
+  previewCols.style.gridTemplateColumns = hasProducts ? '' : '1fr';
+
+  const topProducts = productResults.slice(0, PREVIEW_PRODUCT_LIMIT).map(r => r.item);
+  document.getElementById('preview-products-count').textContent = `[${productResults.length}]`;
+  document.getElementById('preview-products-list').innerHTML    = topProducts.map(renderProductCard).join('');
+
+  const topContent = contentResults.slice(0, PREVIEW_SUGGESTION_LIMIT).map(r => r.item);
+  document.getElementById('preview-suggestions-count').textContent = `[${contentResults.length}]`;
+  document.getElementById('preview-suggestions-list').innerHTML    = topContent.map(renderSuggestionItem).join('');
+
+  document.getElementById('see-all-btn').textContent = `See all results [${totalCount}]`;
+}
+
+// ── Results page ──────────────────────────────────────────────────────
+function openResultsPage(query) {
+  closeSearch();
+  document.getElementById('main-page').style.display    = 'none';
+  document.getElementById('results-page').style.display = 'block';
+  document.getElementById('results-title').textContent  = `Search results for "${query.toUpperCase()}"`;
+  document.getElementById('results-search-input').value = query;
+  document.getElementById('results-clear-btn').style.display = query ? 'flex' : 'none';
+  window.scrollTo(0, 0);
+  renderResultsPage(query, 'all');
+}
+
+function renderResultsPage(query, activeTab) {
+  const grouped   = searchAll(query);
+  const products  = grouped.product  || [];
+  const families  = grouped.family   || [];
+  const articles  = grouped.article  || [];
+  const faqs      = grouped.faq      || [];
+  const docs      = grouped.doc      || [];
+  const totalCount = products.length + families.length + articles.length + faqs.length + docs.length;
+  const content   = grouped.article || [];
+  const allContent = [...articles, ...faqs];
+
+  const tabs = [
+    { id:'all',     label:'All',               count: totalCount },
+    { id:'product', label:'Products',           count: products.length },
+    { id:'family',  label:'Product families',   count: families.length },
+    { id:'article', label:'Content',            count: allContent.length },
+    { id:'doc',     label:'User documentation', count: docs.length },
+  ].filter(t => t.count > 0 || t.id === 'all');
+
+  // Render tabs
+  document.getElementById('results-tabs').innerHTML = tabs.map(t =>
+    `<button class="results-tab-btn ${t.id===activeTab?'active':''}"
+             onclick="renderResultsPage(${JSON.stringify(query)}, '${t.id}')">
+       ${t.label} [${t.count}]
+     </button>`
+  ).join('');
+
+  const el = document.getElementById('results-content');
+
+  if (!totalCount) {
+    el.innerHTML = `<div class="no-results">
+      <div class="no-results-title">No results for "${escHtml(query)}"</div>
+      <div class="no-results-sub">Try different search terms or browse product categories.</div>
+    </div>`;
+    return;
+  }
+
+  // ── ALL tab: stacked sections each with preview + "See all" ──────────
+  if (activeTab === 'all') {
+    let html = '';
+
+    if (products.length) {
+      const preview = products.slice(0, 6);
+      html += `<div class="results-section">
+        <div class="results-section-hdr">
+          <div class="results-section-title">Products <span>[${products.length}]</span></div>
+          ${products.length > 6 ? `<button class="results-see-all" onclick="renderResultsPage(${JSON.stringify(query)},'product')">See all &rsaquo;</button>` : ''}
+        </div>
+        <div class="res-grid">${preview.map(renderResGridCard).join('')}</div>
+      </div>`;
+    }
+
+    if (families.length) {
+      const preview = families.slice(0, 6);
+      html += `<div class="results-section">
+        <div class="results-section-hdr">
+          <div class="results-section-title">Product families <span>[${families.length}]</span></div>
+          ${families.length > 6 ? `<button class="results-see-all" onclick="renderResultsPage(${JSON.stringify(query)},'family')">See all &rsaquo;</button>` : ''}
+        </div>
+        <div class="res-list-grid">${preview.map(renderResListRow).join('')}</div>
+      </div>`;
+    }
+
+    if (allContent.length) {
+      const preview = allContent.slice(0, 6);
+      html += `<div class="results-section">
+        <div class="results-section-hdr">
+          <div class="results-section-title">Content <span>[${allContent.length}]</span></div>
+          ${allContent.length > 6 ? `<button class="results-see-all" onclick="renderResultsPage(${JSON.stringify(query)},'article')">See all &rsaquo;</button>` : ''}
+        </div>
+        <div class="res-list-grid">${preview.map(renderResListRow).join('')}</div>
+      </div>`;
+    }
+
+    if (docs.length) {
+      const preview = docs.slice(0, 6);
+      html += `<div class="results-section">
+        <div class="results-section-hdr">
+          <div class="results-section-title">User documentation <span>[${docs.length}]</span></div>
+          ${docs.length > 6 ? `<button class="results-see-all" onclick="renderResultsPage(${JSON.stringify(query)},'doc')">See all &rsaquo;</button>` : ''}
+        </div>
+        <div class="res-list-grid">${preview.map(renderResListRow).join('')}</div>
+      </div>`;
+    }
+
+    el.innerHTML = html;
+    return;
+  }
+
+  // ── Individual tab ────────────────────────────────────────────────────
+  const tabItems = {
+    product: products, family: families,
+    article: allContent, doc: docs,
+  }[activeTab] || [];
+
+  if (!tabItems.length) {
+    el.innerHTML = `<div class="no-results">
+      <div class="no-results-title">No results for "${escHtml(query)}"</div>
+    </div>`;
+    return;
+  }
+
+  if (activeTab === 'product') {
+    el.innerHTML = `<div class="results-section"><div class="res-grid">${tabItems.map(renderResGridCard).join('')}</div></div>`;
+  } else {
+    el.innerHTML = `<div class="results-section"><div class="res-list-grid">${tabItems.map(renderResListRow).join('')}</div></div>`;
+  }
+}
+
+function clearResultsSearch() {
+  const inp = document.getElementById('results-search-input');
+  inp.value = '';
+  inp.focus();
+  document.getElementById('results-clear-btn').style.display = 'none';
+  document.getElementById('results-title').textContent = 'Search results for ""';
+  document.getElementById('results-content').innerHTML = '';
+  document.getElementById('results-tabs').innerHTML = '';
+}
+
+function escHtml(s) {
+  return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+// ── Bootstrap ─────────────────────────────────────────────────────────
+document.addEventListener('DOMContentLoaded', () => {
+  populateNavs();
+
+  // Search icon click = commit search (same as pressing Enter)
+  document.getElementById('search-submit-btn').addEventListener('click', () => {
+    if (!currentQuery) return;
+    const previewVisible = document.getElementById('state-preview').style.display !== 'none';
+    if (previewVisible) { openResultsPage(currentQuery); return; }
+    commitSearch(currentQuery);
+  });
+
+  // CLEAR button: wipe the input and return to empty state
+  document.getElementById('search-clear-btn').addEventListener('click', () => {
+    const input = document.getElementById('search-input');
+    input.value = '';
+    currentQuery = '';
+    typedQuery   = '';
+    acFocusIndex = -1;
+    document.getElementById('search-clear-btn').style.display = 'none';
+    showState('empty');
+    input.focus();
+  });
+
+  const input = document.getElementById('search-input');
+  input.addEventListener('input', onSearchInput);
+  input.addEventListener('keydown', e => {
+    // Arrow keys: navigate suggestions + inline-fill input (Chrome address-bar style)
+    if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+      // Only navigate if the autocomplete dropdown is visible
+      const acVisible = document.getElementById('autocomplete-wrap').style.display !== 'none';
+      if (acVisible) acHandleKey(e);
+      return;
+    }
+
+    if (e.key === 'Escape') { closeSearch(); return; }
+
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      const q = currentQuery;
+      if (!q) return;
+
+      // acSetFocus() already wrote the focused suggestion into currentQuery,
+      // so Enter can always just commit q directly — no button-click detour needed.
+
+      // Preview already open → go to full results page
+      const previewVisible = document.getElementById('state-preview').style.display !== 'none';
+      if (previewVisible) { openResultsPage(q); return; }
+
+      // Commit: close dropdown and show the preview panel
+      commitSearch(q);
+    }
+  });
+
+  document.getElementById('see-all-btn').addEventListener('click', () => {
+    if (currentQuery) openResultsPage(currentQuery);
+  });
+
+  document.getElementById('results-clear-btn').addEventListener('click', clearResultsSearch);
+
+  document.getElementById('results-search-input').addEventListener('input', e => {
+    const clearBtn = document.getElementById('results-clear-btn');
+    clearBtn.style.display = e.target.value ? 'flex' : 'none';
+  });
+
+  document.getElementById('results-search-input').addEventListener('keydown', e => {
+    if (e.key === 'Enter') {
+      const q = e.target.value.trim();
+      if (q) {
+        currentQuery = q;
+        document.getElementById('results-title').textContent = `Search results for "${q.toUpperCase()}"`;
+        renderResultsPage(q, 'all');
+      }
+    }
+  });
+
+  document.getElementById('search-overlay').addEventListener('click', e => {
+    if (e.target === document.getElementById('search-overlay')) closeSearch();
+  });
+
+  document.addEventListener('keydown', e => {
+    if (e.key === 'Escape') {
+      if (document.getElementById('search-overlay').classList.contains('active')) closeSearch();
+      if (document.getElementById('results-page').style.display === 'block') {
+        document.getElementById('results-page').style.display = 'none';
+        document.getElementById('main-page').style.display    = '';
+      }
+    }
+  });
+});
+</script>
+</body>
+</html>
