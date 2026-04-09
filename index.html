@@ -1212,7 +1212,7 @@ let currentQuery = '';
 let typedQuery   = '';    // what the user actually typed (restored when arrowing back past index 0)
 let debounceTimer = null;
 let acFocusIndex  = -1;   // keyboard focus in autocomplete
-let activeFilters = new Set(); // empty = "All"; otherwise a set of type ids
+let activeFilter = 'all'; // 'all' or one type id
 
 // ── Nav cloning ───────────────────────────────────────────────────────
 function populateNavs() {
@@ -1395,7 +1395,7 @@ function renderPreview(productResults, contentResults, totalCount) {
 // ── Results page ──────────────────────────────────────────────────────
 function openResultsPage(query) {
   closeSearch();
-  activeFilters = new Set(); // reset filters on each new search
+  activeFilter = 'all'; // reset filters on each new search
   document.getElementById('main-page').style.display    = 'none';
   document.getElementById('results-page').style.display = 'block';
   document.getElementById('results-title').textContent  = `Search results for "${query.toUpperCase()}"`;
@@ -1407,15 +1407,8 @@ function openResultsPage(query) {
 
 function toggleFilter(filterId) {
   const query = document.getElementById('results-search-input').value.trim() || currentQuery;
-  if (filterId === 'all') {
-    activeFilters = new Set();
-  } else {
-    if (activeFilters.has(filterId)) {
-      activeFilters.delete(filterId);
-    } else {
-      activeFilters.add(filterId);
-    }
-  }
+  // clicking the already-active filter returns to "all"
+  activeFilter = (activeFilter === filterId) ? 'all' : filterId;
   renderResultsPage(query);
 }
 
@@ -1437,11 +1430,11 @@ function renderResultsPage(query) {
     { id:'doc',     label:'User documentation', count: docs.length },
   ].filter(t => t.count > 0 || t.id === 'all');
 
-  const isAll = activeFilters.size === 0;
+  const isAll = activeFilter === 'all';
 
-  // Render tabs — "All" active when no filter selected; others active when in the set
+  // Render tabs — highlight whichever filter is active
   document.getElementById('results-tabs').innerHTML = tabs.map(t => {
-    const isActive = t.id === 'all' ? isAll : activeFilters.has(t.id);
+    const isActive = t.id === activeFilter;
     return `<button class="results-tab-btn ${isActive ? 'active' : ''}"
                onclick="toggleFilter('${t.id}')">
                ${t.label} [${t.count}]
@@ -1510,52 +1503,29 @@ function renderResultsPage(query) {
     return;
   }
 
-  // ── Filtered view: show full lists for each selected type ─────────────
-  let html = '';
-
-  if (activeFilters.has('product') && products.length) {
-    html += `<div class="results-section">
-      <div class="results-section-hdr">
-        <div class="results-section-title">Products <span>[${products.length}]</span></div>
-      </div>
+  // ── Filtered view: show full list for the single active type ────────────
+  const filterMap = {
+    product: () => `<div class="results-section">
+      <div class="results-section-hdr"><div class="results-section-title">Products <span>[${products.length}]</span></div></div>
       <div class="res-grid">${products.map(renderResGridCard).join('')}</div>
-    </div>`;
-  }
-
-  if (activeFilters.has('family') && families.length) {
-    html += `<div class="results-section">
-      <div class="results-section-hdr">
-        <div class="results-section-title">Product families <span>[${families.length}]</span></div>
-      </div>
+    </div>`,
+    family: () => `<div class="results-section">
+      <div class="results-section-hdr"><div class="results-section-title">Product families <span>[${families.length}]</span></div></div>
       <div class="res-list-grid">${families.map(renderResListRow).join('')}</div>
-    </div>`;
-  }
-
-  if (activeFilters.has('article') && allContent.length) {
-    html += `<div class="results-section">
-      <div class="results-section-hdr">
-        <div class="results-section-title">Content <span>[${allContent.length}]</span></div>
-      </div>
+    </div>`,
+    article: () => `<div class="results-section">
+      <div class="results-section-hdr"><div class="results-section-title">Content <span>[${allContent.length}]</span></div></div>
       <div class="res-list-grid">${allContent.map(renderResListRow).join('')}</div>
-    </div>`;
-  }
-
-  if (activeFilters.has('doc') && docs.length) {
-    html += `<div class="results-section">
-      <div class="results-section-hdr">
-        <div class="results-section-title">User documentation <span>[${docs.length}]</span></div>
-      </div>
+    </div>`,
+    doc: () => `<div class="results-section">
+      <div class="results-section-hdr"><div class="results-section-title">User documentation <span>[${docs.length}]</span></div></div>
       <div class="res-list-grid">${docs.map(renderResListRow).join('')}</div>
-    </div>`;
-  }
+    </div>`,
+  };
 
-  if (!html) {
-    html = `<div class="no-results">
-      <div class="no-results-title">No results for the selected filters</div>
-    </div>`;
-  }
-
-  el.innerHTML = html;
+  el.innerHTML = filterMap[activeFilter]?.() || `<div class="no-results">
+    <div class="no-results-title">No results for the selected filter</div>
+  </div>`;
 }
 
 function clearResultsSearch() {
@@ -1642,7 +1612,7 @@ document.addEventListener('DOMContentLoaded', () => {
       const q = e.target.value.trim();
       if (q) {
         currentQuery = q;
-        activeFilters = new Set();
+        activeFilter = 'all';
         document.getElementById('results-title').textContent = `Search results for "${q.toUpperCase()}"`;
         renderResultsPage(q);
       }
