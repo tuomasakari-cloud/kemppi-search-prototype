@@ -1405,7 +1405,8 @@ function openResultsPage(query) {
   renderResultsPage(query);
 }
 
-function toggleFilter(query, filterId) {
+function toggleFilter(filterId) {
+  const query = document.getElementById('results-search-input').value.trim() || currentQuery;
   if (filterId === 'all') {
     activeFilters = new Set();
   } else {
@@ -1442,7 +1443,7 @@ function renderResultsPage(query) {
   document.getElementById('results-tabs').innerHTML = tabs.map(t => {
     const isActive = t.id === 'all' ? isAll : activeFilters.has(t.id);
     return `<button class="results-tab-btn ${isActive ? 'active' : ''}"
-               onclick="toggleFilter(${JSON.stringify(query)}, '${t.id}')">
+               onclick="toggleFilter('${t.id}')">
                ${t.label} [${t.count}]
              </button>`;
   }).join('');
@@ -1466,7 +1467,7 @@ function renderResultsPage(query) {
       html += `<div class="results-section">
         <div class="results-section-hdr">
           <div class="results-section-title">Products <span>[${products.length}]</span></div>
-          ${products.length > 6 ? `<button class="results-see-all" onclick="toggleFilter(${JSON.stringify(query)},'product')">See all &rsaquo;</button>` : ''}
+          ${products.length > 6 ? `<button class="results-see-all" onclick="toggleFilter('product')">See all &rsaquo;</button>` : ''}
         </div>
         <div class="res-grid">${preview.map(renderResGridCard).join('')}</div>
       </div>`;
@@ -1477,7 +1478,7 @@ function renderResultsPage(query) {
       html += `<div class="results-section">
         <div class="results-section-hdr">
           <div class="results-section-title">Product families <span>[${families.length}]</span></div>
-          ${families.length > 6 ? `<button class="results-see-all" onclick="toggleFilter(${JSON.stringify(query)},'family')">See all &rsaquo;</button>` : ''}
+          ${families.length > 6 ? `<button class="results-see-all" onclick="toggleFilter('family')">See all &rsaquo;</button>` : ''}
         </div>
         <div class="res-list-grid">${preview.map(renderResListRow).join('')}</div>
       </div>`;
@@ -1488,7 +1489,7 @@ function renderResultsPage(query) {
       html += `<div class="results-section">
         <div class="results-section-hdr">
           <div class="results-section-title">Content <span>[${allContent.length}]</span></div>
-          ${allContent.length > 6 ? `<button class="results-see-all" onclick="toggleFilter(${JSON.stringify(query)},'article')">See all &rsaquo;</button>` : ''}
+          ${allContent.length > 6 ? `<button class="results-see-all" onclick="toggleFilter('article')">See all &rsaquo;</button>` : ''}
         </div>
         <div class="res-list-grid">${preview.map(renderResListRow).join('')}</div>
       </div>`;
@@ -1499,7 +1500,7 @@ function renderResultsPage(query) {
       html += `<div class="results-section">
         <div class="results-section-hdr">
           <div class="results-section-title">User documentation <span>[${docs.length}]</span></div>
-          ${docs.length > 6 ? `<button class="results-see-all" onclick="toggleFilter(${JSON.stringify(query)},'doc')">See all &rsaquo;</button>` : ''}
+          ${docs.length > 6 ? `<button class="results-see-all" onclick="toggleFilter('doc')">See all &rsaquo;</button>` : ''}
         </div>
         <div class="res-list-grid">${preview.map(renderResListRow).join('')}</div>
       </div>`;
