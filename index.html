@@ -370,6 +370,7 @@ body.search-open #overlay-nav .nav-right      { margin-left: auto; }
   text-underline-offset: 0.25em; transition: text-decoration-color 0.15s;
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
   min-width: 0; /* allow flex child to shrink below content width so ellipsis kicks in */
+  padding-bottom: 2px; /* prevent overflow:hidden from clipping the underline */
 }
 .tag {
   display: inline-block; padding: 2px 8px;
@@ -833,7 +834,7 @@ body.search-open #overlay-nav .nav-right      { margin-left: auto; }
         </div>
         <div>
           <div class="preview-col-header">
-            <span class="preview-col-title">Search suggestions</span>
+            <span class="preview-col-title">Suggested content</span>
             <span class="preview-col-count" id="preview-suggestions-count"></span>
           </div>
           <ul class="suggestion-list" id="preview-suggestions-list"></ul>
