@@ -182,8 +182,10 @@ body.search-open #overlay-nav .nav-right      { margin-left: auto; }
    4. SEARCH BAR + AUTOCOMPLETE  (unified bordered container)
       Key insight from Figma: the bar and the dropdown share ONE border.
    ===================================================================== */
-.search-container {
+.search-group {
   margin-top: 80px;
+}
+.search-container {
   position: relative;
 }
 
@@ -561,7 +563,7 @@ body.search-open #overlay-nav .nav-right      { margin-left: auto; }
 
   /* ── Search overlay -------------------------------------------- */
   .overlay-inner { padding: 0 var(--px) 80px; }
-  .search-container { margin-top: 40px; }
+  .search-group { margin-top: 40px; }
 
   /* Tighten the search bar row */
   .search-bar-row { height: 52px; padding: 0 14px; }
@@ -656,6 +658,85 @@ body.search-open #overlay-nav .nav-right      { margin-left: auto; }
   .nav-close-btn { display: none; }
   .overlay-mobile-close { display: none; }
 }
+
+/* =====================================================================
+   AI ASSISTANT
+   ===================================================================== */
+/* Trigger button — floats top-right above the search bar */
+.ai-trigger-wrap {
+  display: flex; justify-content: flex-end; margin-bottom: 16px;
+}
+.ai-trigger-btn {
+  display: flex; align-items: center; gap: 10px;
+  background: rgba(255,255,255,0.13); border: none; border-radius: 999px;
+  color: white; font-family: var(--font); font-size: 15px; font-weight: 400;
+  padding: 11px 20px; cursor: pointer; transition: background 0.15s;
+}
+.ai-trigger-btn:hover { background: rgba(255,255,255,0.22); }
+
+/* AI chat state */
+#state-ai { display: none; padding-top: 64px; }
+.ai-messages { margin-bottom: 48px; }
+.ai-msg-row { display: flex; margin-bottom: 14px; }
+.ai-msg-row.user { justify-content: flex-end; }
+.ai-bubble {
+  display: inline-flex; align-items: center; gap: 10px;
+  background: rgba(255,255,255,0.11); border-radius: 999px;
+  padding: 12px 22px; color: white; font-size: 16px; line-height: 1.4;
+  max-width: 70%;
+}
+.ai-msg-row.user .ai-bubble {
+  background: transparent;
+  border: 1px solid rgba(255,255,255,0.5);
+}
+/* Typing indicator */
+.ai-typing-dots { display: flex; gap: 5px; padding: 6px 4px; }
+.ai-typing-dots span {
+  width: 7px; height: 7px; border-radius: 50%;
+  background: rgba(255,255,255,0.5);
+  animation: ai-dot-bounce 1.1s infinite ease-in-out;
+}
+.ai-typing-dots span:nth-child(2) { animation-delay: 0.18s; }
+.ai-typing-dots span:nth-child(3) { animation-delay: 0.36s; }
+@keyframes ai-dot-bounce { 0%,60%,100%{transform:translateY(0)} 30%{transform:translateY(-7px)} }
+
+/* Option chips */
+.ai-chips { display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 16px; }
+.ai-chip {
+  background: none; border: 1px solid rgba(255,255,255,0.35); border-radius: 999px;
+  color: white; font-family: var(--font); font-size: 15px;
+  padding: 10px 22px; cursor: pointer; transition: background 0.15s, border-color 0.15s;
+  white-space: nowrap;
+}
+.ai-chip:hover { background: rgba(255,255,255,0.1); border-color: rgba(255,255,255,0.65); }
+.ai-chip.used { opacity: 0.35; pointer-events: none; }
+
+/* Message input — sticky so it stays visible as messages grow */
+.ai-input-row {
+  display: flex; align-items: center; gap: 12px;
+  border: 1px solid rgba(255,255,255,0.35); border-radius: 999px;
+  padding: 12px 20px;
+  transition: border-color 0.15s;
+  position: sticky; bottom: 32px;
+  background: var(--overlay-bg);
+}
+.ai-input-row:focus-within { border-color: rgba(255,255,255,0.75); }
+#ai-input {
+  flex: 1; background: none; border: none; outline: none;
+  color: white; font-size: 16px; font-family: var(--font); caret-color: white;
+}
+#ai-input::placeholder { color: rgba(255,255,255,0.38); }
+.ai-send-btn {
+  background: none; border: none; cursor: pointer;
+  color: rgba(255,255,255,0.38); display: flex; align-items: center;
+  transition: color 0.15s; padding: 0;
+}
+.ai-send-btn:hover { color: white; }
+@media (max-width: 768px) {
+  #state-ai { padding-top: 40px; }
+  .ai-chip { font-size: 14px; padding: 9px 18px; }
+  .ai-bubble { font-size: 15px; }
+}
 </style>
 </head>
 <body>
@@ -665,7 +746,7 @@ body.search-open #overlay-nav .nav-right      { margin-left: auto; }
      ===================================================================== -->
 <template id="nav-tpl">
   <div class="nav-inner">
-    <a class="nav-logo" href="#">
+    <a class="nav-logo" href="#" onclick="resetPrototype(); return false;" aria-label="Kemppi home">
       <img src="https://images.ctfassets.net/dm1yzlen4xm0/6j5yhKj2cGGIiKQ19bbiBY/be0924b5249c44c34bbd54cd0910ae2c/kemppi-logo.svg"
            alt="Kemppi" width="120" height="30">
     </a>
@@ -761,8 +842,21 @@ body.search-open #overlay-nav .nav-right      { margin-left: auto; }
 
   <div class="overlay-inner">
 
+    <!-- Search group: AI button + search bar grouped together -->
+    <div class="search-group">
+
+    <!-- AI trigger button — visible only in empty state -->
+    <div class="ai-trigger-wrap" id="ai-trigger-wrap">
+      <button class="ai-trigger-btn" id="ai-trigger-btn">
+        <svg width="24" height="24" viewBox="0 0 28 28" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M22.7812 2C23.2453 2 23.625 2.38571 23.625 2.85714V5.42857H26.1562C26.6203 5.42857 27 5.81429 27 6.28571C27 6.75714 26.6203 7.14286 26.1562 7.14286H23.625V9.71429C23.625 10.1857 23.2453 10.5714 22.7812 10.5714C22.3172 10.5714 21.9375 10.1857 21.9375 9.71429V7.14286H19.4062C18.9422 7.14286 18.5625 6.75714 18.5625 6.28571C18.5625 5.81429 18.9422 5.42857 19.4062 5.42857H21.9375V2.85714C21.9375 2.38571 22.3172 2 22.7812 2ZM22.7812 17.4286C23.2453 17.4286 23.625 17.8143 23.625 18.2857V20.8571H26.1562C26.6203 20.8571 27 21.2429 27 21.7143C27 22.1857 26.6203 22.5714 26.1562 22.5714H23.625V25.1429C23.625 25.6143 23.2453 26 22.7812 26C22.3172 26 21.9375 25.6143 21.9375 25.1429V22.5714H19.4062C18.9422 22.5714 18.5625 22.1857 18.5625 21.7143C18.5625 21.2429 18.9422 20.8571 19.4062 20.8571H21.9375V18.2857C21.9375 17.8143 22.3172 17.4286 22.7812 17.4286ZM7.21406 11.8786L2.8582 13.925L7.21406 15.9661C7.57793 16.1375 7.86797 16.4321 8.03672 16.8018L10.0459 21.2268L12.0551 16.8018C12.2238 16.4321 12.5139 16.1375 12.8777 15.9661L17.2336 13.925L12.8777 11.8839C12.5139 11.7125 12.2238 11.4179 12.0551 11.0482L10.0459 6.62321L8.03672 11.0482C7.86797 11.4179 7.57793 11.7125 7.21406 11.8839V11.8786ZM6.50742 17.525L0.49043 14.7018C0.189844 14.5625 0 14.2571 0 13.925C0 13.5929 0.189844 13.2875 0.49043 13.1482L6.50742 10.325L9.28125 4.2125C9.41836 3.90714 9.71895 3.71429 10.0459 3.71429C10.3729 3.71429 10.6734 3.90714 10.8105 4.2125L13.5896 10.325L19.6066 13.1429C19.9072 13.2821 20.0971 13.5875 20.0971 13.9196C20.0971 14.2518 19.9072 14.5571 19.6066 14.6964L13.5949 17.525L10.8158 23.6321C10.6787 23.9375 10.3781 24.1304 10.0512 24.1304C9.72422 24.1304 9.42363 23.9375 9.28652 23.6321L6.50742 17.525Z" fill="white"/>
+        </svg>
+        Ask anything from our AI-assistant
+      </button>
+    </div>
+
     <!-- Unified search container: bar + autocomplete share one border -->
-    <div class="search-container">
+    <div class="search-container" id="search-container">
       <div class="search-box" id="search-box">
 
         <!-- Search bar row -->
@@ -795,6 +889,8 @@ body.search-open #overlay-nav .nav-right      { margin-left: auto; }
 
       </div>
     </div>
+
+    </div><!-- /.search-group -->
 
     <!-- STATE 0: Empty -->
     <div id="state-empty">
@@ -842,6 +938,20 @@ body.search-open #overlay-nav .nav-right      { margin-left: auto; }
       </div>
       <div class="see-all-wrap">
         <button class="see-all-btn" id="see-all-btn">See all results</button>
+      </div>
+    </div>
+
+    <!-- STATE 3: AI Assistant chat -->
+    <div id="state-ai">
+      <div class="ai-messages" id="ai-messages"></div>
+      <div class="ai-chips" id="ai-chips"></div>
+      <div class="ai-input-row">
+        <input type="text" id="ai-input" placeholder="Write a message" autocomplete="off">
+        <button class="ai-send-btn" id="ai-send-btn" aria-label="Send">
+          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/>
+          </svg>
+        </button>
       </div>
     </div>
 
@@ -1270,6 +1380,29 @@ function closeSearch() {
   document.body.style.overflow = '';
 }
 
+function resetPrototype() {
+  // Close overlay and results page, restore main page
+  closeSearch();
+  document.getElementById('results-page').style.display = 'none';
+  document.getElementById('main-page').style.display = '';
+  // Reset all state variables
+  currentQuery    = '';
+  typedQuery      = '';
+  searchCommitted = false;
+  activeFilter    = 'all';
+  // Clear search UI
+  document.getElementById('search-input').value = '';
+  document.getElementById('search-ghost').innerHTML = '';
+  document.getElementById('search-clear-btn').style.display = 'none';
+  // Clear AI chat
+  document.getElementById('ai-messages').innerHTML = '';
+  document.getElementById('ai-chips').innerHTML = '';
+  // Reset overlay to empty state (ready for next open)
+  showState('empty');
+  // Scroll to top
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
 function fillSearch(term) {
   const input = document.getElementById('search-input');
   input.value = term;
@@ -1282,9 +1415,167 @@ function fillSearch(term) {
 
 // ── State management ─────────────────────────────────────────────────
 function showState(state) {
-  document.getElementById('state-empty').style.display   = (state==='empty')   ? 'block' : 'none';
-  document.getElementById('state-preview').style.display = (state==='preview') ? 'block' : 'none';
-  document.getElementById('autocomplete-wrap').style.display = (state==='autocomplete') ? 'block' : 'none';
+  const isAI = state === 'ai';
+  document.getElementById('state-empty').style.display        = (state==='empty')        ? 'block' : 'none';
+  document.getElementById('state-preview').style.display      = (state==='preview')      ? 'block' : 'none';
+  document.getElementById('autocomplete-wrap').style.display  = (state==='autocomplete') ? 'block' : 'none';
+  document.getElementById('state-ai').style.display           = isAI                     ? 'block' : 'none';
+  document.getElementById('search-container').style.display   = isAI                     ? 'none'  : '';
+  document.getElementById('ai-trigger-wrap').style.display    = (state==='empty')        ? 'flex'  : 'none';
+}
+
+// ── AI conversation flows ─────────────────────────────────────────────
+const AI_ICON_SVG = `<svg width="20" height="20" viewBox="0 0 28 28" fill="none" xmlns="http://www.w3.org/2000/svg" style="flex-shrink:0"><path d="M22.7812 2C23.2453 2 23.625 2.38571 23.625 2.85714V5.42857H26.1562C26.6203 5.42857 27 5.81429 27 6.28571C27 6.75714 26.6203 7.14286 26.1562 7.14286H23.625V9.71429C23.625 10.1857 23.2453 10.5714 22.7812 10.5714C22.3172 10.5714 21.9375 10.1857 21.9375 9.71429V7.14286H19.4062C18.9422 7.14286 18.5625 6.75714 18.5625 6.28571C18.5625 5.81429 18.9422 5.42857 19.4062 5.42857H21.9375V2.85714C21.9375 2.38571 22.3172 2 22.7812 2ZM22.7812 17.4286C23.2453 17.4286 23.625 17.8143 23.625 18.2857V20.8571H26.1562C26.6203 20.8571 27 21.2429 27 21.7143C27 22.1857 26.6203 22.5714 26.1562 22.5714H23.625V25.1429C23.625 25.6143 23.2453 26 22.7812 26C22.3172 26 21.9375 25.6143 21.9375 25.1429V22.5714H19.4062C18.9422 22.5714 18.5625 22.1857 18.5625 21.7143C18.5625 21.2429 18.9422 20.8571 19.4062 20.8571H21.9375V18.2857C21.9375 17.8143 22.3172 17.4286 22.7812 17.4286ZM7.21406 11.8786L2.8582 13.925L7.21406 15.9661C7.57793 16.1375 7.86797 16.4321 8.03672 16.8018L10.0459 21.2268L12.0551 16.8018C12.2238 16.4321 12.5139 16.1375 12.8777 15.9661L17.2336 13.925L12.8777 11.8839C12.5139 11.7125 12.2238 11.4179 12.0551 11.0482L10.0459 6.62321L8.03672 11.0482C7.86797 11.4179 7.57793 11.7125 7.21406 11.8839V11.8786ZM6.50742 17.525L0.49043 14.7018C0.189844 14.5625 0 14.2571 0 13.925C0 13.5929 0.189844 13.2875 0.49043 13.1482L6.50742 10.325L9.28125 4.2125C9.41836 3.90714 9.71895 3.71429 10.0459 3.71429C10.3729 3.71429 10.6734 3.90714 10.8105 4.2125L13.5896 10.325L19.6066 13.1429C19.9072 13.2821 20.0971 13.5875 20.0971 13.9196C20.0971 14.2518 19.9072 14.5571 19.6066 14.6964L13.5949 17.525L10.8158 23.6321C10.6787 23.9375 10.3781 24.1304 10.0512 24.1304C9.72422 24.1304 9.42363 23.9375 9.28652 23.6321L6.50742 17.525Z" fill="white"/></svg>`;
+
+const AI_FLOWS = {
+  welcome: {
+    msg: 'Hello, how can I help you?',
+    chips: [
+      { label: 'I am trying to find a product',              next: 'findProduct' },
+      { label: 'I want to find information about a product', next: 'findInfo' },
+      { label: 'I am not sure what I need',                  next: 'notSure' },
+    ]
+  },
+  findProduct: {
+    msg: 'Great! What type of welding are you doing?',
+    chips: [
+      { label: 'MIG/MAG welding',   next: 'mig' },
+      { label: 'TIG welding',       next: 'tig' },
+      { label: 'Stick (MMA)',       next: 'mma' },
+      { label: 'Not sure yet',      next: 'notSure' },
+    ]
+  },
+  findInfo: {
+    msg: 'Of course — which product are you looking for information about?',
+    chips: [
+      { label: 'Minarc range',   search: 'minarc' },
+      { label: 'Master M range', search: 'master m' },
+      { label: 'X5 FastMig',     search: 'x5 fastmig' },
+      { label: 'MinarcMig Auto', search: 'minarcmig' },
+    ]
+  },
+  notSure: {
+    msg: 'No problem — I can help narrow it down. Is portability important for your work?',
+    chips: [
+      { label: 'Yes, it needs to be portable', next: 'portable' },
+      { label: 'No, fixed workshop use',       next: 'workshop' },
+    ]
+  },
+  mig: {
+    msg: 'For MIG/MAG welding, the Master M and MinarcMig Auto are strong compact choices. For heavier industrial work, the X5 FastMig is the go-to modular system.',
+    chips: [
+      { label: 'Show Master M products',    search: 'master m' },
+      { label: 'Show MinarcMig products',   search: 'minarcmig' },
+      { label: 'Show X5 FastMig products',  search: 'x5 fastmig' },
+    ]
+  },
+  tig: {
+    msg: 'For TIG welding, the Minarc T range covers both DC-only and AC/DC needs. The Minarc T 223 ACDC GM is popular for multi-voltage professional work.',
+    chips: [
+      { label: 'Show Minarc T products', search: 'minarc t' },
+      { label: 'Show all TIG products',  search: 'tig' },
+    ]
+  },
+  mma: {
+    msg: 'For Stick (MMA) welding, the Minarc and Minarc Evo families deliver portable, durable performance ideal for both site and workshop.',
+    chips: [
+      { label: 'Show Minarc products',     search: 'minarc' },
+      { label: 'Show Minarc Evo products', search: 'minarc evo' },
+    ]
+  },
+  portable: {
+    msg: 'The Minarc range is purpose-built for portability — lightweight, robust and impact resistant. The MinarcMig Auto is also an excellent portable MIG option.',
+    chips: [
+      { label: 'Show portable welders', search: 'minarc' },
+    ]
+  },
+  workshop: {
+    msg: 'For fixed workshop use, the Master M and X5 FastMig deliver the best performance. The X5 is modular and built for high-volume industrial welding.',
+    chips: [
+      { label: 'Show Master M',    search: 'master m' },
+      { label: 'Show X5 FastMig', search: 'x5 fastmig' },
+    ]
+  },
+};
+
+function openAIChat() {
+  searchCommitted = false;
+  showState('ai');
+  document.getElementById('ai-messages').innerHTML = '';
+  document.getElementById('ai-chips').innerHTML = '';
+  setTimeout(() => showAIStep('welcome'), 250);
+  setTimeout(() => document.getElementById('ai-input').focus(), 300);
+}
+
+function showAIStep(stepId) {
+  const flow = AI_FLOWS[stepId];
+  if (!flow) return;
+  // Show typing indicator
+  const typingId = 'ai-typing-' + Date.now();
+  appendAIMessage(`<div class="ai-typing-dots" id="${typingId}"><span></span><span></span><span></span></div>`, false);
+  setTimeout(() => {
+    const el = document.getElementById(typingId);
+    if (el) el.closest('.ai-msg-row').remove();
+    const msgContent = stepId === 'welcome' ? AI_ICON_SVG + flow.msg : flow.msg;
+    appendAIMessage(msgContent, false);
+    if (flow.chips) renderAIChips(flow.chips);
+    document.getElementById('ai-input').focus();
+  }, 900);
+}
+
+function appendAIMessage(content, isUser) {
+  const row = document.createElement('div');
+  row.className = 'ai-msg-row' + (isUser ? ' user' : '');
+  if (isUser) {
+    row.innerHTML = `<div class="ai-bubble">${escHtml(content)}</div>`;
+  } else {
+    row.innerHTML = `<div class="ai-bubble">${content}</div>`;
+  }
+  document.getElementById('ai-messages').appendChild(row);
+}
+
+function renderAIChips(chips) {
+  const wrap = document.getElementById('ai-chips');
+  wrap.innerHTML = '';
+  chips.forEach(chip => {
+    const btn = document.createElement('button');
+    btn.className = 'ai-chip';
+    btn.textContent = chip.label;
+    btn.addEventListener('click', () => {
+      // Mark all chips used
+      wrap.querySelectorAll('.ai-chip').forEach(c => c.classList.add('used'));
+      // Show user bubble
+      appendAIMessage(chip.label, true);
+      wrap.innerHTML = '';
+      if (chip.search) {
+        // Navigate to search results
+        openResultsPage(chip.search);
+      } else if (chip.next) {
+        showAIStep(chip.next);
+      }
+    });
+    wrap.appendChild(btn);
+  });
+}
+
+function handleAIInput() {
+  const input = document.getElementById('ai-input');
+  const text = input.value.trim();
+  if (!text) return;
+  input.value = '';
+  appendAIMessage(text, true);
+  document.getElementById('ai-chips').innerHTML = '';
+  // Simple keyword routing for free-text input
+  const q = text.toLowerCase();
+  let step = 'findProduct';
+  if (q.includes('mig') || q.includes('wire'))                            step = 'mig';
+  else if (q.includes('tig') || q.includes('ac/dc') || q.includes('acdc')) step = 'tig';
+  else if (q.includes('stick') || q.includes('mma'))                       step = 'mma';
+  else if (q.includes('portable') || q.includes('light'))                  step = 'portable';
+  else if (q.includes('workshop') || q.includes('industrial'))              step = 'workshop';
+  else if (q.includes('info') || q.includes('manual') || q.includes('doc')) step = 'findInfo';
+  else if (q.includes('not sure') || q.includes('help'))                   step = 'notSure';
+  showAIStep(step);
 }
 
 // ── Keyboard navigation in autocomplete ──────────────────────────────
@@ -1596,6 +1887,15 @@ document.addEventListener('DOMContentLoaded', () => {
     const previewVisible = document.getElementById('state-preview').style.display !== 'none';
     if (previewVisible) { openResultsPage(currentQuery); return; }
     commitSearch(currentQuery);
+  });
+
+  // AI trigger button
+  document.getElementById('ai-trigger-btn').addEventListener('click', openAIChat);
+
+  // AI send button + Enter key
+  document.getElementById('ai-send-btn').addEventListener('click', handleAIInput);
+  document.getElementById('ai-input').addEventListener('keydown', e => {
+    if (e.key === 'Enter') { e.preventDefault(); handleAIInput(); }
   });
 
   // CLEAR button: wipe the input and return to empty state
