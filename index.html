@@ -1985,6 +1985,12 @@ document.addEventListener('DOMContentLoaded', () => {
     if (e.target === document.getElementById('search-overlay')) closeSearch();
   });
 
+  // Deep-link: #ai opens the AI chat directly on load
+  if (window.location.hash === '#ai') {
+    openSearch();
+    setTimeout(() => openAIChat(), 100);
+  }
+
   document.addEventListener('keydown', e => {
     if (e.key === 'Escape') {
       if (document.getElementById('search-overlay').classList.contains('active')) closeSearch();
