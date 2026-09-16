@@ -702,14 +702,19 @@ body.search-open #overlay-nav .nav-right      { margin-left: auto; }
 
 /* Option chips */
 .ai-chips { display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 16px; }
+@keyframes chip-in {
+  from { opacity: 0; transform: translateY(10px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
 .ai-chip {
   background: none; border: 1px solid rgba(255,255,255,0.35); border-radius: 999px;
   color: white; font-family: var(--font); font-size: 15px;
   padding: 10px 22px; cursor: pointer; transition: background 0.15s, border-color 0.15s;
   white-space: nowrap;
+  opacity: 0; animation: chip-in 0.35s ease forwards;
 }
 .ai-chip:hover { background: rgba(255,255,255,0.1); border-color: rgba(255,255,255,0.65); }
-.ai-chip.used { opacity: 0.35; pointer-events: none; }
+.ai-chip.used { opacity: 0.35; pointer-events: none; animation: none; }
 
 /* Message input — sticky so it stays visible as messages grow */
 .ai-input-row {
@@ -1537,10 +1542,11 @@ function appendAIMessage(content, isUser) {
 function renderAIChips(chips) {
   const wrap = document.getElementById('ai-chips');
   wrap.innerHTML = '';
-  chips.forEach(chip => {
+  chips.forEach((chip, i) => {
     const btn = document.createElement('button');
     btn.className = 'ai-chip';
     btn.textContent = chip.label;
+    btn.style.animationDelay = `${1 + i * 0.15}s`;
     btn.addEventListener('click', () => {
       // Mark all chips used
       wrap.querySelectorAll('.ai-chip').forEach(c => c.classList.add('used'));
