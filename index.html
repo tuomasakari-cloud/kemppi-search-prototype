@@ -1474,12 +1474,43 @@ const AI_FLOWS = {
 
   /* ── PATH 1: Product finder ──────────────────────────────────── */
   findProduct: {
-    msg: 'Happy to help. Which welding process are you working with?',
+    msg: 'Happy to help. Are you looking for a complete welding machine, or something more specific?',
+    chips: [
+      { label: 'A complete welding machine',  next: 'findProcess' },
+      { label: 'A welding torch',             next: 'torch' },
+      { label: 'A wire feeder',               next: 'wireFeeder' },
+      { label: 'Accessories or consumables',  next: 'accessories' },
+    ]
+  },
+  findProcess: {
+    msg: 'Which welding process are you working with?',
     chips: [
       { label: 'MIG/MAG welding', next: 'mig' },
       { label: 'TIG welding',     next: 'tig' },
       { label: 'Stick (MMA)',     next: 'mma' },
       { label: 'Not sure yet',    next: 'notSure' },
+    ]
+  },
+  torch: {
+    msg: 'Kemppi offers a comprehensive range of welding torches for both MIG/MAG and TIG processes. Which type are you looking for?',
+    chips: [
+      { label: 'MIG/MAG welding torch', search: 'mig torch' },
+      { label: 'TIG torch',             search: 'tig torch' },
+    ]
+  },
+  wireFeeder: {
+    msg: 'For wire feeding, the X5 FastMig system includes top-loading and heavy-duty side-loading feeders with a 5.7" TFT display, designed for high-volume industrial MIG/MAG welding:',
+    products: ['x5-fastmig'],
+    chips: [
+      { label: 'See all wire feeder products', search: 'wire feeder' },
+      { label: 'Find documentation',           search: 'x5 wire feeder manual' },
+    ]
+  },
+  accessories: {
+    msg: 'Kemppi provides a full range of welding accessories, consumables and personal protective equipment. Our team can advise on the best fit for your machine and application.',
+    chips: [
+      { label: 'Search accessories', search: 'accessories' },
+      { label: 'Get in touch',       next: 'contact' },
     ]
   },
   mig: {
@@ -1592,7 +1623,7 @@ function showAIStep(stepId) {
     if (flow.products) appendAIProducts(flow.products);
     if (flow.chips) renderAIChips(flow.chips);
     document.getElementById('ai-input').focus();
-  }, stepId === 'welcome' ? 3000 : 1000);
+  }, stepId === 'welcome' ? 2000 : 1000);
 }
 
 function appendAIProducts(familyIds) {
