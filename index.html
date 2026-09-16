@@ -1802,8 +1802,80 @@ const AI_FLOWS = {
     chips: [{ label: 'Go to contact page', url: 'https://www.kemppi.com/en/contact/' }]
   },
   contactSupport: {
-    msg: 'Our technical support team provides guidance on product commissioning, welding process optimisation and warranty matters. Support is available through your local Kemppi dealer or our global after-sales network.',
-    chips: [{ label: 'Explore support options', url: 'https://www.kemppi.com/en/support/' }]
+    msg: 'Kemppi\'s worldwide support network is built to get you back up and running as quickly as possible. What kind of support do you need?',
+    chips: [
+      { label: 'User manuals & documentation', next: 'supportDocs' },
+      { label: 'Warranty & returns',           next: 'supportWarranty' },
+      { label: 'Training',                     next: 'supportTraining' },
+      { label: 'Troubleshooting help',         next: 'supportFAQ' },
+    ]
+  },
+  supportDocs: {
+    msg: 'All Kemppi user manuals, installation instructions, declarations of conformity and service documentation are available in Userdoc — our dedicated documentation portal. You can search by product name or model number.',
+    chips: [
+      { label: 'Open Userdoc', url: 'https://userdoc.kemppi.com' },
+      { label: 'Download product catalogues', next: 'supportCatalogues' },
+    ]
+  },
+  supportCatalogues: {
+    msg: 'Kemppi product catalogues are available for download covering the full range — manual welding, welding guns and torches, robotic welding and welding safety:',
+    chips: [
+      { label: 'Manual welding catalogue',          url: 'https://www.kemppi.com/en/support/' },
+      { label: 'Welding guns & torches catalogue',  url: 'https://www.kemppi.com/en/support/' },
+      { label: 'Robotic welding catalogue',         url: 'https://www.kemppi.com/en/support/' },
+      { label: 'Welding safety catalogue',          url: 'https://www.kemppi.com/en/support/' },
+    ]
+  },
+  supportWarranty: {
+    msg: 'Kemppi provides a standard 2-year warranty on all welding equipment. You can extend this to 3 years by registering your product within 4 weeks of purchase. The warranty covers defects in materials and workmanship under normal use conditions.',
+    chips: [
+      { label: 'Warranty details & registration', url: 'https://www.kemppi.com/en/support/warranty/' },
+      { label: 'Returns & service network',       next: 'supportReturns' },
+    ]
+  },
+  supportReturns: {
+    msg: 'If there is an issue with your delivery or you need to arrange a return, your nearest authorised Kemppi dealer or service workshop is your first point of contact. They are equipped to handle all service and warranty claims efficiently.',
+    chips: [
+      { label: 'Find a service workshop', url: 'https://www.kemppi.com/en/contact/find-a-dealer/' },
+      { label: 'Returns information',     url: 'https://www.kemppi.com/en/support/returns/' },
+    ]
+  },
+  supportTraining: {
+    msg: 'Kemppi offers a range of training programmes to help you and your team get the most from your welding equipment — covering product operation, welding process optimisation and software tools. Training is delivered through Kemppi\'s global dealer and partner network.',
+    chips: [
+      { label: 'Explore training options', url: 'https://www.kemppi.com/en/support/training/' },
+      { label: 'Talk to our team',         next: 'contactSales' },
+    ]
+  },
+  supportFAQ: {
+    msg: 'Here are the topics our customers ask about most. Which one is relevant for you?',
+    chips: [
+      { label: 'Error codes on my machine',   next: 'faqErrorCodes' },
+      { label: 'Software & firmware updates', next: 'faqSoftware' },
+      { label: 'Spare parts & pricing',       next: 'faqSpareParts' },
+      { label: 'Warranty questions',          next: 'supportWarranty' },
+    ]
+  },
+  faqErrorCodes: {
+    msg: 'Error code meanings vary by product. The fastest way to identify an error is to search for your machine model in Userdoc, where each operating manual contains a full fault code reference and troubleshooting guide. Your local service workshop can also diagnose and resolve faults remotely in many cases.',
+    chips: [
+      { label: 'Search Userdoc for my machine', url: 'https://userdoc.kemppi.com' },
+      { label: 'Find a service workshop',       url: 'https://www.kemppi.com/en/contact/find-a-dealer/' },
+    ]
+  },
+  faqSoftware: {
+    msg: 'Software and firmware updates for Kemppi welding machines are available through Userdoc and, for connected machines, via the WeldEye platform. Your dealer or Kemppi service team can assist with update procedures if needed.',
+    chips: [
+      { label: 'Go to Userdoc',      url: 'https://userdoc.kemppi.com' },
+      { label: 'Learn about WeldEye', next: 'digitalWeldEye' },
+    ]
+  },
+  faqSpareParts: {
+    msg: 'Spare part numbers, availability and pricing are managed through the Kemppi dealer network. Your local authorised dealer can source genuine Kemppi spare parts and provide lead time estimates.',
+    chips: [
+      { label: 'Find your nearest dealer', url: 'https://www.kemppi.com/en/contact/find-a-dealer/' },
+      { label: 'Go to support page',       url: 'https://www.kemppi.com/en/support/' },
+    ]
   },
 };
 
