@@ -1105,6 +1105,15 @@ const FAMILIES = [
   { id:'master-m-205-323', brandGroup:'master',  name:'Master M 205, 323', weldType:'MIG/MAG',      url:'/en/family/master-m-205-323',desc:'Portable multiprocess welders setting new standards for power and performance in a compact, lightweight design.' },
   // — X5 FastMig (modular industrial MIG/MAG system) ———————————————————
   { id:'x5-fastmig',       brandGroup:'x5',      name:'X5 FastMig',        weldType:'MIG/MAG',      url:'/en/family/x5-fastmig',      desc:'360-degree modular multi-process welder for high-performance MIG/MAG welding. Manual, synergic and pulse options.' },
+  // — Accessories & PPE ————————————————————————————————————————————————
+  { id:'s-line',            brandGroup:'accessories', name:'S-line',           weldType:'PPE',          url:'/en/family/s-line',          desc:'Auto-darkening welding helmets combining high-quality vision, comfort and safety. Models from entry to professional level.' },
+  { id:'beta',              brandGroup:'accessories', name:'Beta',             weldType:'PPE',          url:'/en/family/beta',            desc:'Lightweight welding helmets for professional applications. Passive and auto-darkening filter options. Rated for EN175 cutting and grinding.' },
+  { id:'kemppi-gloves',     brandGroup:'accessories', name:'Kemppi Gloves',    weldType:'PPE',          url:'/en/family/kemppi-gloves',   desc:'Professional welding gloves developed with Kemppi\'s design integrity and safety standards. Models for MIG/MAG, TIG and general welding.' },
+  { id:'kemppi-workwear',   brandGroup:'accessories', name:'Kemppi Workwear',  weldType:'PPE',          url:'/en/family/kemppi-workwear', desc:'Certified flame-retardant welding workwear engineered for ultimate protection and comfort. Overalls and bib & braces in multiple sizes.' },
+  // — Digital solutions ————————————————————————————————————————————————
+  { id:'weldeye',           brandGroup:'digital',  name:'WeldEye',            weldType:'Software',     url:'/en/family/weldeye',         desc:'Cloud-based welding management software. Real-time production data, WPS management, quality documentation and traceability in one platform.' },
+  { id:'universal-wps',     brandGroup:'digital',  name:'Universal WPS',      weldType:'Software',     url:'/en/family/universal-wps',   desc:'Ready-to-use online welding procedure specifications for MIG/MAG, stick (MMA), stainless steel, tube and pipe welding.' },
+  { id:'arcvalidator',      brandGroup:'digital',  name:'ArcValidator',       weldType:'Software',     url:'/en/family/arcvalidator',    desc:'Systematic welding equipment validation solution. Links workshop and office-based processes to meet international quality standards.' },
   // — Flexlite torch families ——————————————————————————————————————————
   { id:'flexlite-gx',      brandGroup:'flexlite', name:'Flexlite GX',       weldType:'MIG/MAG',      url:'/en/family/flexlite-gx',     desc:'Professional MIG/MAG welding guns with Flexlite ergonomics. Air- and water-cooled models from 250–405 A with Euro connector.', img:'https://cdn-kemppi.contenthub.fi/cdn-cgi/image/format=auto,width=128/api/v1/cdn/4448578' },
   { id:'flexlite-gxe',     brandGroup:'flexlite', name:'Flexlite GXe',      weldType:'MIG/MAG',      url:'/en/family/flexlite-gxe',    desc:'High-quality MIG/MAG torches with optimised ergonomics, excellent welding performance and 6-month consumable warranty.', img:'https://cdn-kemppi.contenthub.fi/cdn-cgi/image/format=auto,width=128/api/v1/cdn/4529999' },
@@ -1166,6 +1175,37 @@ const PRODUCTS = [
   { id:'x5-wf-300-apc',              familyId:'x5-fastmig',       name:'X5 Wire Feeder 300 APC',    sku:'X5250300000',      category:'Wire feeder',     desc:'Top-loading wire feeder with graphical 5.7" TFT display. Automatic process control.' },
   { id:'x5-wf-hd300-ap',             familyId:'x5-fastmig',       name:'X5 Wire Feeder HD300 AP',   sku:'X5270300000',      category:'Wire feeder',     desc:'Side-loading heavy duty wire feeder with 5.7" TFT display. For synergic MIG/MAG, TIG, MMA.' },
   { id:'x5-wf-hd300-apc',            familyId:'x5-fastmig',       name:'X5 Wire Feeder HD300 APC',  sku:'X5280300000',      category:'Wire feeder',     desc:'Side-loading heavy duty wire feeder with 5.7" TFT display. Automatic process control.' },
+  // — S-line welding helmets ———————————————————————————————————————————
+  { id:'s-line-s1020',     familyId:'s-line',        name:'S-line S1020',          sku:'S1020',         category:'Welding helmet',  desc:'Entry-level auto-darkening welding helmet. Shade DIN 9–13, solar + battery power, wide viewing area.' },
+  { id:'s-line-s1030',     familyId:'s-line',        name:'S-line S1030',          sku:'S1030',         category:'Welding helmet',  desc:'Mid-range auto-darkening helmet with enhanced filter performance. DIN 9–13, external shade adjustment.' },
+  { id:'s-line-s1040',     familyId:'s-line',        name:'S-line S1040',          sku:'S1040',         category:'Welding helmet',  desc:'Professional auto-darkening welding helmet. Large viewing area, DIN 9–13, grind mode, memory settings.' },
+  { id:'s-line-s1065',     familyId:'s-line',        name:'S-line S1065',          sku:'S1065',         category:'Welding helmet',  desc:'Top-of-range S-line helmet with True Colour technology, true-colour view DIN 5–13, premium optics.' },
+  // — Beta welding helmets ——————————————————————————————————————————————
+  { id:'beta-e90p',        familyId:'beta',          name:'Beta e90P',             sku:'9873022',       category:'Welding helmet',  desc:'Passive filter welding helmet. Reliable eye and face protection for basic welding applications.' },
+  { id:'beta-e90a',        familyId:'beta',          name:'Beta e90A',             sku:'9873023',       category:'Welding helmet',  desc:'Auto-darkening filter SA 60B. Reliable protection for eyes, face and neck. Lightweight, comfortable fit.' },
+  { id:'beta-e90x',        familyId:'beta',          name:'Beta e90X',             sku:'9873024',       category:'Welding helmet',  desc:'Auto-darkening filter XA 47. Premium eye and face protection for professional welding applications.' },
+  { id:'beta-e90a-ice',    familyId:'beta',          name:'Beta e90A Art ICE',     sku:'9873023AI',     category:'Welding helmet',  desc:'Special edition Beta e90A with Ice design — auto-darkening, same performance as standard e90A.' },
+  // — Kemppi Gloves ————————————————————————————————————————————————————
+  { id:'gloves-mig-l',     familyId:'kemppi-gloves', name:'Kemppi MIG Gloves L',   sku:'KWG001001054',  category:'PPE',             desc:'Premium MIG/MAG welding gloves. Split leather palm, flame-retardant lining, secure cuff fastening. Size L.' },
+  { id:'gloves-mig-xl',    familyId:'kemppi-gloves', name:'Kemppi MIG Gloves XL',  sku:'KWG001001058',  category:'PPE',             desc:'Premium MIG/MAG welding gloves. Split leather palm, flame-retardant lining, secure cuff fastening. Size XL.' },
+  { id:'gloves-tig-l',     familyId:'kemppi-gloves', name:'Kemppi TIG Gloves L',   sku:'KWG002001054',  category:'PPE',             desc:'TIG welding gloves in soft goat leather for dexterity and heat protection. Size L.' },
+  { id:'gloves-tig-xl',    familyId:'kemppi-gloves', name:'Kemppi TIG Gloves XL',  sku:'KWG002001058',  category:'PPE',             desc:'TIG welding gloves in soft goat leather for dexterity and heat protection. Size XL.' },
+  // — Kemppi Workwear ——————————————————————————————————————————————————
+  { id:'overalls-turku-m', familyId:'kemppi-workwear', name:'Work Overalls Turku M', sku:'KWW014001050', category:'PPE',            desc:'Premium flame-retardant welding overalls. EN ISO 11611 Class 2 certified. Size M.' },
+  { id:'overalls-turku-l', familyId:'kemppi-workwear', name:'Work Overalls Turku L', sku:'KWW014001054', category:'PPE',            desc:'Premium flame-retardant welding overalls. EN ISO 11611 Class 2 certified. Size L.' },
+  { id:'overalls-turku-xl',familyId:'kemppi-workwear', name:'Work Overalls Turku XL',sku:'KWW014001058', category:'PPE',            desc:'Premium flame-retardant welding overalls. EN ISO 11611 Class 2 certified. Size XL.' },
+  { id:'bibs-oulu-m',      familyId:'kemppi-workwear', name:'Bib & Braces Oulu M',  sku:'KWW013001092', category:'PPE',            desc:'Flame-retardant bib and braces for welding. EN ISO 11611 Class 2. Reinforced knees and seat. Size M.' },
+  { id:'bibs-oulu-xl',     familyId:'kemppi-workwear', name:'Bib & Braces Oulu XL', sku:'KWW013001106', category:'PPE',            desc:'Flame-retardant bib and braces for welding. EN ISO 11611 Class 2. Reinforced knees and seat. Size XL.' },
+  // — WeldEye ——————————————————————————————————————————————————————————
+  { id:'weldeye-dcm',      familyId:'weldeye',       name:'Digital Connectivity Module', sku:'6265051',  category:'Digital',        desc:'Hardware accessory for WeldEye cloud integration. Collects welding data from any compatible machine in real time.' },
+  { id:'weldeye-platform', familyId:'weldeye',       name:'WeldEye Platform',      sku:'WE-PLATFORM',   category:'Digital',        desc:'Cloud-based welding production management. Real-time monitoring, WPS management, traceability and quality reporting.' },
+  // — Universal WPS ———————————————————————————————————————————————————
+  { id:'wps-mig-mag',      familyId:'universal-wps', name:'Universal WPS for MIG/MAG welding',   sku:'6800003', category:'Digital', desc:'84 MIG/MAG WPSs for workshop production welding. Compatible with all major machine types.' },
+  { id:'wps-mma',          familyId:'universal-wps', name:'Universal WPS for Stick (MMA) welding',sku:'6800002', category:'Digital', desc:'WPSs for stick welding applications. Compatible with all stick welding machines.' },
+  { id:'wps-stainless',    familyId:'universal-wps', name:'Universal WPS for stainless steel',   sku:'6800007', category:'Digital', desc:'21 WPSs for austenitic stainless steel MIG/MAG and MMA welding.' },
+  { id:'wps-tube',         familyId:'universal-wps', name:'Universal WPS for MIG/MAG tube welding',sku:'6800005',category:'Digital',desc:'28 WPSs for butt welding of structural tubes and pipes.' },
+  // — ArcValidator ————————————————————————————————————————————————————
+  { id:'arcvalidator-pkg', familyId:'arcvalidator',  name:'ArcValidator',          sku:'6490950',       category:'Digital',        desc:'Systematic welding equipment validation tool. Meets ISO, EN and AWS standards. Links workshop and office processes.' },
   // — Flexlite GX (air- and water-cooled MIG/MAG guns) ——————————————
   { id:'gx-255g-35',    familyId:'flexlite-gx',    name:'GX 255G 3.5m',     sku:'GX255G35',      category:'Welding torch',   desc:'Gas-cooled 250 A MIG/MAG welding gun with Euro connector, 3.5 m cable.' },
   { id:'gx-255g-5',     familyId:'flexlite-gx',    name:'GX 255G 5m',       sku:'GX255G5',       category:'Welding torch',   desc:'Gas-cooled 250 A MIG/MAG welding gun with Euro connector, 5 m cable.' },
@@ -1365,6 +1405,13 @@ const FAMILY_IMAGES = {
   'master-m':         _ch(2185466),
   'master-m-205-323': _ch(2182268),
   'x5-fastmig':       _ch(2191605),
+  's-line':           _ch(2455796),
+  'beta':             _ch(2123788),
+  'kemppi-gloves':    _ch(2132373),
+  'kemppi-workwear':  _ch(10121379),
+  'weldeye':          _ch(2117618),
+  'universal-wps':    _ch(8809268),
+  'arcvalidator':     _ch(2092178),
   'flexlite-gx':      _ch(4448578),
   'flexlite-gxe':     _ch(4529999),
   'flexlite-gf':      _ch(2170104),
@@ -1549,6 +1596,7 @@ const AI_FLOWS = {
     chips: [
       { label: 'Help me find the right product',    next: 'findProduct' },
       { label: 'I need product information',        next: 'findInfo' },
+      { label: 'Digital solutions & software',      next: 'digital' },
       { label: 'Get in touch with Kemppi',          next: 'contact' },
     ]
   },
@@ -1613,10 +1661,27 @@ const AI_FLOWS = {
     ]
   },
   accessories: {
-    msg: 'Kemppi provides a full range of welding accessories, consumables and personal protective equipment. Our team can advise on the best fit for your machine and application.',
+    msg: 'Kemppi offers a complete range of welding accessories and personal protective equipment. What are you looking for?',
     chips: [
-      { label: 'Search accessories', search: 'accessories' },
-      { label: 'Get in touch',       next: 'contact' },
+      { label: 'Welding helmets',        next: 'accessoriesHelmets' },
+      { label: 'Gloves & workwear',      next: 'accessoriesProtection' },
+      { label: 'Digital solutions',      next: 'digital' },
+    ]
+  },
+  accessoriesHelmets: {
+    msg: 'Kemppi\'s welding helmet range covers everything from reliable everyday protection to premium true-colour optics with respiratory integration:',
+    products: ['s-line', 'beta'],
+    chips: [
+      { label: 'See all welding helmets', search: 'welding helmet' },
+      { label: 'Show documentation',      showDocs: 'helmet', search: 'helmet manual' },
+    ]
+  },
+  accessoriesProtection: {
+    msg: 'Kemppi\'s gloves and workwear are certified for professional welding environments — engineered for protection, durability and comfort in demanding conditions:',
+    products: ['kemppi-gloves', 'kemppi-workwear'],
+    chips: [
+      { label: 'See all PPE products', search: 'gloves workwear' },
+      { label: 'Get in touch',         next: 'contact' },
     ]
   },
   mig: {
@@ -1652,14 +1717,50 @@ const AI_FLOWS = {
     chips: [{ label: 'See all workshop machines', search: 'workshop' }, { label: 'Show documentation', showDocs: 'master operating manual', search: 'master operating manual' }]
   },
 
+  /* ── Digital solutions ───────────────────────────────────────── */
+  digital: {
+    msg: 'Kemppi\'s digital solutions help you manage, document and optimise your welding production. Which area are you interested in?',
+    chips: [
+      { label: 'Welding management software', next: 'digitalWeldEye' },
+      { label: 'Welding procedure specs (WPS)', next: 'digitalWPS' },
+      { label: 'Equipment validation',         next: 'digitalArcValidator' },
+    ]
+  },
+  digitalWeldEye: {
+    msg: 'WeldEye is Kemppi\'s cloud-based welding management platform — connecting your welding equipment, documentation and quality processes in real time. It covers WPS management, production monitoring, traceability and reporting.',
+    products: ['weldeye'],
+    chips: [
+      { label: 'Explore WeldEye', search: 'weldeye' },
+      { label: 'Show documentation', showDocs: 'weldeye', search: 'weldeye manual' },
+      { label: 'Talk to our team',   next: 'contactSales' },
+    ]
+  },
+  digitalWPS: {
+    msg: 'Universal WPS online packages provide certified, ready-to-use welding procedure specifications — available for MIG/MAG, stick, stainless steel, tube and pipe welding. No in-house qualification testing required.',
+    products: ['universal-wps'],
+    chips: [
+      { label: 'See all WPS packages', search: 'universal wps' },
+      { label: 'Talk to our team',     next: 'contactSales' },
+    ]
+  },
+  digitalArcValidator: {
+    msg: 'ArcValidator is a systematic validation solution that verifies welding equipment performance against international standards. It bridges workshop measurements and office-based quality documentation.',
+    products: ['arcvalidator'],
+    chips: [
+      { label: 'Learn more about ArcValidator', search: 'arcvalidator' },
+      { label: 'Show documentation',            showDocs: 'arcvalidator', search: 'arcvalidator manual' },
+      { label: 'Talk to our team',              next: 'contactSales' },
+    ]
+  },
+
   /* ── PATH 2: Product information ─────────────────────────────── */
   findInfo: {
     msg: 'Of course. Which product range are you researching?',
     chips: [
-      { label: 'Minarc range',   next: 'infoMinarc' },
-      { label: 'Master M range', next: 'infoMaster' },
-      { label: 'X5 FastMig',     next: 'infoX5' },
-      { label: 'MinarcMig Auto', next: 'infoMinarcmig' },
+      { label: 'Minarc range',        next: 'infoMinarc' },
+      { label: 'Master M range',      next: 'infoMaster' },
+      { label: 'X5 FastMig',          next: 'infoX5' },
+      { label: 'Digital solutions',   next: 'digital' },
     ]
   },
   infoMinarc: {
