@@ -721,8 +721,10 @@ body.search-open #overlay-nav .nav-right      { margin-left: auto; }
 .ai-product-card {
   display: flex; align-items: center; gap: 14px;
   background: rgba(255,255,255,0.08); border-radius: 16px; padding: 12px 14px;
-  transition: opacity 0.35s ease, transform 0.35s ease;
+  transition: opacity 0.35s ease, transform 0.35s ease, background 0.15s ease;
+  cursor: pointer;
 }
+.ai-product-card:hover { background: rgba(255,255,255,0.14); }
 .ai-product-card-img {
   width: 64px; height: 64px; flex-shrink: 0;
   background: #f0f0f0; border-radius: 10px; overflow: hidden;
@@ -735,6 +737,14 @@ body.search-open #overlay-nav .nav-right      { margin-left: auto; }
   color: rgba(255,255,255,0.65); font-size: 13px; line-height: 1.4;
   display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
 }
+/* Model list shown after clicking a family card */
+.ai-model-list { display: flex; flex-direction: column; gap: 6px; }
+.ai-model-item {
+  display: flex; justify-content: space-between; align-items: center; gap: 16px;
+  padding: 8px 14px; background: rgba(255,255,255,0.06); border-radius: 10px;
+}
+.ai-model-name { color: white; font-size: 14px; }
+.ai-model-sku  { color: rgba(255,255,255,0.4); font-size: 12px; font-family: monospace; flex-shrink: 0; }
 
 /* Message input — sticky so it stays visible as messages grow */
 .ai-input-row {
@@ -1475,17 +1485,17 @@ const AI_FLOWS = {
   mig: {
     msg: 'For MIG/MAG welding, these product families cover the full range from portable job-site machines to high-volume industrial systems:',
     products: ['minarcmig-auto', 'master-m', 'x5-fastmig'],
-    chips: [{ label: 'See all MIG/MAG products', search: 'mig mag' }]
+    chips: [{ label: 'See all MIG/MAG products', search: 'mig mag' }, { label: 'Find documentation', search: 'mig operating manual' }]
   },
   tig: {
     msg: 'For TIG welding, our range spans compact portable DC machines through to professional AC/DC systems for demanding aluminium and stainless work:',
     products: ['minarc-t', 'minarc-t-dc', 'minarctig'],
-    chips: [{ label: 'See all TIG products', search: 'tig' }]
+    chips: [{ label: 'See all TIG products', search: 'tig' }, { label: 'Find documentation', search: 'tig operating manual' }]
   },
   mma: {
     msg: 'For Stick (MMA) welding, the Minarc family has been trusted by professionals for decades — built tough for both site and workshop environments:',
     products: ['minarc', 'minarc-evo'],
-    chips: [{ label: 'See all Stick (MMA) products', search: 'mma' }]
+    chips: [{ label: 'See all Stick (MMA) products', search: 'mma' }, { label: 'Find documentation', search: 'minarc operating manual' }]
   },
   notSure: {
     msg: 'No problem. To point you in the right direction — is portability a key requirement for your work?',
@@ -1497,12 +1507,12 @@ const AI_FLOWS = {
   portable: {
     msg: 'For professionals on the move, the Minarc range offers an excellent balance of portability, durability and welding performance across MMA and MIG/MAG processes:',
     products: ['minarc', 'minarc-evo', 'minarcmig-auto'],
-    chips: [{ label: 'See all portable welders', search: 'minarc' }]
+    chips: [{ label: 'See all portable welders', search: 'minarc' }, { label: 'Find documentation', search: 'minarc operating manual' }]
   },
   workshop: {
     msg: 'For workshop and production environments, these systems deliver the arc performance, process flexibility and connectivity that demanding industrial applications require:',
     products: ['master-m', 'x5-fastmig'],
-    chips: [{ label: 'See all workshop machines', search: 'workshop' }]
+    chips: [{ label: 'See all workshop machines', search: 'workshop' }, { label: 'Find documentation', search: 'master operating manual' }]
   },
 
   /* ── PATH 2: Product information ─────────────────────────────── */
@@ -1518,22 +1528,22 @@ const AI_FLOWS = {
   infoMinarc: {
     msg: 'The Minarc range is built for professionals who need reliable portable MMA welding in demanding conditions. Light, impact resistant and equally at home on a construction site or in a workshop.',
     products: ['minarc', 'minarc-evo'],
-    chips: [{ label: 'Explore the Minarc range', search: 'minarc' }]
+    chips: [{ label: 'Explore the Minarc range', search: 'minarc' }, { label: 'Find documentation', search: 'minarc manual' }]
   },
   infoMaster: {
     msg: 'Master M sets a benchmark for compact MIG/MAG performance. Intelligent welding parameter control, fast set-up and a consistent arc make it a trusted choice for production welding.',
     products: ['master-m', 'master-m-205-323'],
-    chips: [{ label: 'Explore the Master M range', search: 'master m' }]
+    chips: [{ label: 'Explore the Master M range', search: 'master m' }, { label: 'Find documentation', search: 'master manual' }]
   },
   infoX5: {
     msg: 'The X5 FastMig is our flagship modular welding system — engineered for high-volume industrial MIG/MAG production with full process flexibility, advanced data connectivity and a 360-degree modular design.',
     products: ['x5-fastmig'],
-    chips: [{ label: 'Explore the X5 FastMig system', search: 'x5 fastmig' }]
+    chips: [{ label: 'Explore the X5 FastMig system', search: 'x5 fastmig' }, { label: 'Find documentation', search: 'x5 manual' }]
   },
   infoMinarcmig: {
     msg: 'The MinarcMig Auto brings professional-grade MIG/MAG performance to a genuinely portable package — synergic welding intelligence combined with a compact, lightweight design that goes wherever the work is.',
     products: ['minarcmig-auto'],
-    chips: [{ label: 'Explore the MinarcMig Auto', search: 'minarcmig' }]
+    chips: [{ label: 'Explore the MinarcMig Auto', search: 'minarcmig' }, { label: 'Find documentation', search: 'minarcmig manual' }]
   },
 
   /* ── PATH 3: Contact ─────────────────────────────────────────── */
@@ -1606,10 +1616,42 @@ function appendAIProducts(familyIds) {
         <div class="ai-product-card-type">${escHtml(fam.weldType)}</div>
         <div class="ai-product-card-desc">${escHtml(fam.desc)}</div>
       </div>`;
+    card.addEventListener('click', () => showFamilyDetail(fam));
     container.appendChild(card);
     setTimeout(() => { card.style.opacity = '1'; card.style.transform = 'translateY(0)'; }, i * 150);
   });
   row.appendChild(container);
+  document.getElementById('ai-messages').appendChild(row);
+}
+
+function showFamilyDetail(fam) {
+  appendAIMessage('Tell me more about ' + fam.name, true);
+  document.getElementById('ai-chips').innerHTML = '';
+  const typingId = 'ai-typing-' + Date.now();
+  appendAIMessage(`<div class="ai-typing-dots" id="${typingId}"><span></span><span></span><span></span></div>`, false);
+  setTimeout(() => {
+    const el = document.getElementById(typingId);
+    if (el) el.closest('.ai-msg-row').remove();
+    appendAIMessage(escHtml(fam.desc), false);
+    const models = PRODUCTS.filter(p => p.familyId === fam.id).slice(0, 6);
+    if (models.length) appendAIModelList(models);
+    renderAIChips([{ label: 'See all ' + fam.name + ' products', search: fam.name }]);
+    document.getElementById('ai-input').focus();
+  }, 1000);
+}
+
+function appendAIModelList(models) {
+  const row = document.createElement('div');
+  row.className = 'ai-msg-row';
+  const list = document.createElement('div');
+  list.className = 'ai-model-list';
+  models.forEach(m => {
+    const item = document.createElement('div');
+    item.className = 'ai-model-item';
+    item.innerHTML = `<span class="ai-model-name">${escHtml(m.name)}</span><span class="ai-model-sku">${escHtml(m.sku)}</span>`;
+    list.appendChild(item);
+  });
+  row.appendChild(list);
   document.getElementById('ai-messages').appendChild(row);
 }
 
