@@ -718,14 +718,10 @@ body.search-open #overlay-nav .nav-right      { margin-left: auto; }
 
 /* Inline product family cards inside the AI chat */
 .ai-product-cards { display: flex; flex-direction: column; gap: 8px; max-width: 480px; }
-@keyframes card-in {
-  from { opacity: 0; transform: translateY(10px); }
-  to   { opacity: 1; transform: translateY(0); }
-}
 .ai-product-card {
   display: flex; align-items: center; gap: 14px;
   background: rgba(255,255,255,0.08); border-radius: 16px; padding: 12px 14px;
-  opacity: 0; animation: card-in 0.35s ease forwards;
+  transition: opacity 0.35s ease, transform 0.35s ease;
 }
 .ai-product-card-img {
   width: 64px; height: 64px; flex-shrink: 0;
@@ -1566,21 +1562,28 @@ function showAIStep(stepId) {
 function appendAIProducts(familyIds) {
   const row = document.createElement('div');
   row.className = 'ai-msg-row';
-  const cards = familyIds.map((id, i) => {
+  const container = document.createElement('div');
+  container.className = 'ai-product-cards';
+  familyIds.forEach((id, i) => {
     const fam = FAMILIES.find(f => f.id === id);
-    if (!fam) return '';
+    if (!fam) return;
     const imgUrl = getItemImg(fam, 128);
     const imgHTML = imgUrl ? `<img src="${imgUrl}" alt="${escHtml(fam.name)}" loading="lazy">` : '';
-    return `<div class="ai-product-card" style="animation-delay:${(i * 0.15).toFixed(2)}s">
-        <div class="ai-product-card-img">${imgHTML}</div>
-        <div class="ai-product-card-body">
-          <div class="ai-product-card-name">${escHtml(fam.name)}</div>
-          <div class="ai-product-card-type">${escHtml(fam.weldType)}</div>
-          <div class="ai-product-card-desc">${escHtml(fam.desc)}</div>
-        </div>
+    const card = document.createElement('div');
+    card.className = 'ai-product-card';
+    card.style.opacity = '0';
+    card.style.transform = 'translateY(10px)';
+    card.innerHTML = `
+      <div class="ai-product-card-img">${imgHTML}</div>
+      <div class="ai-product-card-body">
+        <div class="ai-product-card-name">${escHtml(fam.name)}</div>
+        <div class="ai-product-card-type">${escHtml(fam.weldType)}</div>
+        <div class="ai-product-card-desc">${escHtml(fam.desc)}</div>
       </div>`;
-  }).join('');
-  row.innerHTML = `<div class="ai-product-cards">${cards}</div>`;
+    container.appendChild(card);
+    setTimeout(() => { card.style.opacity = '1'; card.style.transform = 'translateY(0)'; }, i * 150);
+  });
+  row.appendChild(container);
   document.getElementById('ai-messages').appendChild(row);
 }
 
