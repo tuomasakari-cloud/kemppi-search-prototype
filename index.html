@@ -1454,24 +1454,60 @@ const AI_ICON_SVG = `<svg width="20" height="20" viewBox="0 0 28 28" fill="none"
 
 const AI_FLOWS = {
   welcome: {
-    msg: 'Hello, how can I help you?',
+    msg: 'Hello, how can I help you today?',
     chips: [
-      { label: 'I am trying to find a product',              next: 'findProduct' },
-      { label: 'I want to find information about a product', next: 'findInfo' },
-      { label: 'I am not sure what I need',                  next: 'notSure' },
+      { label: 'Help me find the right product',    next: 'findProduct' },
+      { label: 'I need product information',        next: 'findInfo' },
+      { label: 'Get in touch with Kemppi',          next: 'contact' },
     ]
   },
+
+  /* ── PATH 1: Product finder ──────────────────────────────────── */
   findProduct: {
-    msg: 'Great! What type of welding are you doing?',
+    msg: 'Happy to help. Which welding process are you working with?',
     chips: [
-      { label: 'MIG/MAG welding',   next: 'mig' },
-      { label: 'TIG welding',       next: 'tig' },
-      { label: 'Stick (MMA)',       next: 'mma' },
-      { label: 'Not sure yet',      next: 'notSure' },
+      { label: 'MIG/MAG welding', next: 'mig' },
+      { label: 'TIG welding',     next: 'tig' },
+      { label: 'Stick (MMA)',     next: 'mma' },
+      { label: 'Not sure yet',    next: 'notSure' },
     ]
   },
+  mig: {
+    msg: 'For MIG/MAG welding, these product families cover the full range from portable job-site machines to high-volume industrial systems:',
+    products: ['minarcmig-auto', 'master-m', 'x5-fastmig'],
+    chips: [{ label: 'See all MIG/MAG products', search: 'mig mag' }]
+  },
+  tig: {
+    msg: 'For TIG welding, our range spans compact portable DC machines through to professional AC/DC systems for demanding aluminium and stainless work:',
+    products: ['minarc-t', 'minarc-t-dc', 'minarctig'],
+    chips: [{ label: 'See all TIG products', search: 'tig' }]
+  },
+  mma: {
+    msg: 'For Stick (MMA) welding, the Minarc family has been trusted by professionals for decades — built tough for both site and workshop environments:',
+    products: ['minarc', 'minarc-evo'],
+    chips: [{ label: 'See all Stick (MMA) products', search: 'mma' }]
+  },
+  notSure: {
+    msg: 'No problem. To point you in the right direction — is portability a key requirement for your work?',
+    chips: [
+      { label: 'Yes, needs to be portable',    next: 'portable' },
+      { label: 'Fixed workshop or production', next: 'workshop' },
+    ]
+  },
+  portable: {
+    msg: 'For professionals on the move, the Minarc range offers an excellent balance of portability, durability and welding performance across MMA and MIG/MAG processes:',
+    products: ['minarc', 'minarc-evo', 'minarcmig-auto'],
+    chips: [{ label: 'See all portable welders', search: 'minarc' }]
+  },
+  workshop: {
+    msg: 'For workshop and production environments, these systems deliver the arc performance, process flexibility and connectivity that demanding industrial applications require:',
+    products: ['master-m', 'x5-fastmig'],
+    chips: [{ label: 'See all workshop machines', search: 'workshop' }]
+  },
+
+  /* ── PATH 2: Product information ─────────────────────────────── */
   findInfo: {
-    msg: 'Of course — which product range are you looking for?',
+    msg: 'Of course. Which product range are you researching?',
     chips: [
       { label: 'Minarc range',   next: 'infoMinarc' },
       { label: 'Master M range', next: 'infoMaster' },
@@ -1480,56 +1516,46 @@ const AI_FLOWS = {
     ]
   },
   infoMinarc: {
-    msg: 'The Minarc range covers portable MMA stick welding — light, robust and impact resistant.',
+    msg: 'The Minarc range is built for professionals who need reliable portable MMA welding in demanding conditions. Light, impact resistant and equally at home on a construction site or in a workshop.',
     products: ['minarc', 'minarc-evo'],
-    chips: [{ label: 'See all Minarc results', search: 'minarc' }]
+    chips: [{ label: 'Explore the Minarc range', search: 'minarc' }]
   },
   infoMaster: {
-    msg: 'Master M delivers compact premium MIG/MAG performance with fast set-up and intelligent parameter control.',
+    msg: 'Master M sets a benchmark for compact MIG/MAG performance. Intelligent welding parameter control, fast set-up and a consistent arc make it a trusted choice for production welding.',
     products: ['master-m', 'master-m-205-323'],
-    chips: [{ label: 'See all Master M results', search: 'master m' }]
+    chips: [{ label: 'Explore the Master M range', search: 'master m' }]
   },
   infoX5: {
-    msg: 'The X5 FastMig is the modular industrial MIG/MAG system built for high-volume professional welding.',
+    msg: 'The X5 FastMig is our flagship modular welding system — engineered for high-volume industrial MIG/MAG production with full process flexibility, advanced data connectivity and a 360-degree modular design.',
     products: ['x5-fastmig'],
-    chips: [{ label: 'See all X5 FastMig results', search: 'x5 fastmig' }]
+    chips: [{ label: 'Explore the X5 FastMig system', search: 'x5 fastmig' }]
   },
   infoMinarcmig: {
-    msg: 'The MinarcMig Auto combines portability with high-performance MIG/MAG welding in a lightweight package.',
+    msg: 'The MinarcMig Auto brings professional-grade MIG/MAG performance to a genuinely portable package — synergic welding intelligence combined with a compact, lightweight design that goes wherever the work is.',
     products: ['minarcmig-auto'],
-    chips: [{ label: 'See all MinarcMig results', search: 'minarcmig' }]
+    chips: [{ label: 'Explore the MinarcMig Auto', search: 'minarcmig' }]
   },
-  notSure: {
-    msg: 'No problem — I can help narrow it down. Is portability important for your work?',
+
+  /* ── PATH 3: Contact ─────────────────────────────────────────── */
+  contact: {
+    msg: 'We are here to help. How can we best direct you?',
     chips: [
-      { label: 'Yes, it needs to be portable', next: 'portable' },
-      { label: 'No, fixed workshop use',       next: 'workshop' },
+      { label: 'Find a dealer or distributor', next: 'contactDealer' },
+      { label: 'Talk to our sales team',       next: 'contactSales' },
+      { label: 'Technical support',            next: 'contactSupport' },
     ]
   },
-  mig: {
-    msg: 'For MIG/MAG welding, here are the best matching product families:',
-    products: ['minarcmig-auto', 'master-m', 'x5-fastmig'],
-    chips: [{ label: 'See all MIG/MAG results', search: 'mig mag' }]
+  contactDealer: {
+    msg: 'Kemppi has an authorised dealer network spanning more than 70 countries. Your local dealer can arrange product demonstrations, provide competitive quotes and deliver comprehensive after-sales support.',
+    chips: [{ label: 'Find a dealer on kemppi.com', url: 'https://www.kemppi.com/en/contact/find-a-dealer/' }]
   },
-  tig: {
-    msg: 'For TIG welding, these families cover both DC-only and AC/DC needs:',
-    products: ['minarc-t', 'minarc-t-dc', 'minarctig'],
-    chips: [{ label: 'See all TIG results', search: 'tig' }]
+  contactSales: {
+    msg: 'Our sales team will be glad to help you identify the right solution for your application and put together a tailored offer. Reach out via our contact page or speak directly with your nearest Kemppi office.',
+    chips: [{ label: 'Go to contact page', url: 'https://www.kemppi.com/en/contact/' }]
   },
-  mma: {
-    msg: 'For Stick (MMA) welding, these families deliver portable durable performance for site and workshop:',
-    products: ['minarc', 'minarc-evo'],
-    chips: [{ label: 'See all MMA results', search: 'mma' }]
-  },
-  portable: {
-    msg: 'The Minarc range is purpose-built for portability — lightweight, robust and impact resistant:',
-    products: ['minarc', 'minarc-evo', 'minarcmig-auto'],
-    chips: [{ label: 'See all portable welders', search: 'minarc' }]
-  },
-  workshop: {
-    msg: 'For fixed workshop use, these deliver the best performance:',
-    products: ['master-m', 'x5-fastmig'],
-    chips: [{ label: 'See all workshop machines', search: 'workshop' }]
+  contactSupport: {
+    msg: 'Our technical support team provides guidance on product commissioning, welding process optimisation and warranty matters. Support is available through your local Kemppi dealer or our global after-sales network.',
+    chips: [{ label: 'Explore support options', url: 'https://www.kemppi.com/en/support/' }]
   },
 };
 
@@ -1612,8 +1638,9 @@ function renderAIChips(chips) {
       // Show user bubble
       appendAIMessage(chip.label, true);
       wrap.innerHTML = '';
-      if (chip.search) {
-        // Navigate to search results
+      if (chip.url) {
+        window.open(chip.url, '_blank');
+      } else if (chip.search) {
         openResultsPage(chip.search);
       } else if (chip.next) {
         showAIStep(chip.next);
