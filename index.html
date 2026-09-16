@@ -742,9 +742,38 @@ body.search-open #overlay-nav .nav-right      { margin-left: auto; }
 .ai-model-item {
   display: flex; justify-content: space-between; align-items: center; gap: 16px;
   padding: 8px 14px; background: rgba(255,255,255,0.06); border-radius: 10px;
+  cursor: pointer; transition: background 0.15s ease;
 }
+.ai-model-item:hover { background: rgba(255,255,255,0.13); }
+.ai-model-item:hover .ai-model-chevron { opacity: 1; transform: translateX(0); }
 .ai-model-name { color: white; font-size: 14px; }
 .ai-model-sku  { color: rgba(255,255,255,0.4); font-size: 12px; font-family: monospace; flex-shrink: 0; }
+.ai-model-chevron { color: rgba(255,255,255,0.35); font-size: 14px; flex-shrink: 0; opacity: 0; transform: translateX(-4px); transition: opacity 0.15s ease, transform 0.15s ease; }
+/* Inline product detail preview */
+.ai-product-detail {
+  background: rgba(255,255,255,0.07); border-radius: 14px; padding: 14px 16px;
+  max-width: 480px;
+}
+.ai-product-detail-name { color: white; font-size: 15px; font-weight: 600; margin-bottom: 4px; }
+.ai-product-detail-meta { color: rgba(255,255,255,0.45); font-size: 12px; font-family: monospace; margin-bottom: 8px; }
+.ai-product-detail-desc { color: rgba(255,255,255,0.72); font-size: 13px; line-height: 1.5; }
+
+/* Inline doc cards in AI chat */
+.ai-doc-cards { display: flex; flex-direction: column; gap: 6px; max-width: 480px; }
+.ai-doc-card {
+  display: flex; align-items: center; gap: 12px;
+  background: rgba(255,255,255,0.06); border-radius: 12px; padding: 10px 14px;
+  transition: opacity 0.35s ease, transform 0.35s ease, background 0.15s ease;
+}
+.ai-doc-card-icon {
+  flex-shrink: 0; width: 32px; height: 32px;
+  display: flex; align-items: center; justify-content: center;
+  background: rgba(255,255,255,0.1); border-radius: 8px;
+}
+.ai-doc-card-body { flex: 1; min-width: 0; }
+.ai-doc-card-name { color: white; font-size: 13px; font-weight: 600; line-height: 1.3;
+  display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.ai-doc-card-tag { color: rgba(255,255,255,0.4); font-size: 11px; margin-top: 2px; }
 
 /* Message input — sticky so it stays visible as messages grow */
 .ai-input-row {
@@ -1076,6 +1105,12 @@ const FAMILIES = [
   { id:'master-m-205-323', brandGroup:'master',  name:'Master M 205, 323', weldType:'MIG/MAG',      url:'/en/family/master-m-205-323',desc:'Portable multiprocess welders setting new standards for power and performance in a compact, lightweight design.' },
   // — X5 FastMig (modular industrial MIG/MAG system) ———————————————————
   { id:'x5-fastmig',       brandGroup:'x5',      name:'X5 FastMig',        weldType:'MIG/MAG',      url:'/en/family/x5-fastmig',      desc:'360-degree modular multi-process welder for high-performance MIG/MAG welding. Manual, synergic and pulse options.' },
+  // — Flexlite torch families ——————————————————————————————————————————
+  { id:'flexlite-gx',      brandGroup:'flexlite', name:'Flexlite GX',       weldType:'MIG/MAG',      url:'/en/family/flexlite-gx',     desc:'Professional MIG/MAG welding guns with Flexlite ergonomics. Air- and water-cooled models from 250–405 A with Euro connector.', img:'https://cdn-kemppi.contenthub.fi/cdn-cgi/image/format=auto,width=128/api/v1/cdn/4448578' },
+  { id:'flexlite-gxe',     brandGroup:'flexlite', name:'Flexlite GXe',      weldType:'MIG/MAG',      url:'/en/family/flexlite-gxe',    desc:'High-quality MIG/MAG torches with optimised ergonomics, excellent welding performance and 6-month consumable warranty.', img:'https://cdn-kemppi.contenthub.fi/cdn-cgi/image/format=auto,width=128/api/v1/cdn/4529999' },
+  { id:'flexlite-gf',      brandGroup:'flexlite', name:'Flexlite GF',       weldType:'MIG/MAG',      url:'/en/family/flexlite-gf',     desc:'MIG/MAG fume extraction torches that remove welding fumes directly at the nozzle without disturbing the shielding gas flow.', img:'https://cdn-kemppi.contenthub.fi/cdn-cgi/image/format=auto,width=128/api/v1/cdn/2170104' },
+  { id:'flexlite-tx',      brandGroup:'flexlite', name:'Flexlite TX',       weldType:'TIG DC',       url:'/en/family/flexlite-tx',     desc:'TIG welding torches designed for Kemppi TIG equipment. Multiple neck models for superb cooling and access to challenging joint designs.', img:'https://cdn-kemppi.contenthub.fi/cdn-cgi/image/format=auto,width=128/api/v1/cdn/4527731' },
+  { id:'flexlite-gxe-c',   brandGroup:'flexlite', name:'Flexlite GXe-C',    weldType:'MIG/MAG',      url:'/en/family/flexlite-gxe-c',  desc:'MIG/MAG cobot torches — plug-in-and-weld simplicity for cobot solutions. Quick to integrate, three function buttons, multiple neck angles.', img:'https://cdn-kemppi.contenthub.fi/cdn-cgi/image/format=auto,width=128/api/v1/cdn/8820598' },
 ];
 
 // ── PRODUCTS ─────────────────────────────────────────────────────────
@@ -1131,6 +1166,47 @@ const PRODUCTS = [
   { id:'x5-wf-300-apc',              familyId:'x5-fastmig',       name:'X5 Wire Feeder 300 APC',    sku:'X5250300000',      category:'Wire feeder',     desc:'Top-loading wire feeder with graphical 5.7" TFT display. Automatic process control.' },
   { id:'x5-wf-hd300-ap',             familyId:'x5-fastmig',       name:'X5 Wire Feeder HD300 AP',   sku:'X5270300000',      category:'Wire feeder',     desc:'Side-loading heavy duty wire feeder with 5.7" TFT display. For synergic MIG/MAG, TIG, MMA.' },
   { id:'x5-wf-hd300-apc',            familyId:'x5-fastmig',       name:'X5 Wire Feeder HD300 APC',  sku:'X5280300000',      category:'Wire feeder',     desc:'Side-loading heavy duty wire feeder with 5.7" TFT display. Automatic process control.' },
+  // — Flexlite GX (air- and water-cooled MIG/MAG guns) ——————————————
+  { id:'gx-255g-35',    familyId:'flexlite-gx',    name:'GX 255G 3.5m',     sku:'GX255G35',      category:'Welding torch',   desc:'Gas-cooled 250 A MIG/MAG welding gun with Euro connector, 3.5 m cable.' },
+  { id:'gx-255g-5',     familyId:'flexlite-gx',    name:'GX 255G 5m',       sku:'GX255G5',       category:'Welding torch',   desc:'Gas-cooled 250 A MIG/MAG welding gun with Euro connector, 5 m cable.' },
+  { id:'gx-305gmn-35',  familyId:'flexlite-gx',    name:'GX 305GMN 3.5m',   sku:'GX305GMN35',    category:'Welding torch',   desc:'Gas-cooled 300 A MIG/MAG welding gun with Euro connector and multineck, 3.5 m cable.' },
+  { id:'gx-305gmn-5',   familyId:'flexlite-gx',    name:'GX 305GMN 5m',     sku:'GX305GMN5',     category:'Welding torch',   desc:'Gas-cooled 300 A MIG/MAG welding gun with Euro connector and multineck, 5 m cable.' },
+  { id:'gx-305gs-6',    familyId:'flexlite-gx',    name:'GX 305GS 6m',      sku:'GX305GS6',      category:'Welding torch',   desc:'Gas-cooled 300 A MIG/MAG welding gun with Euro connector, 6 m cable. For larger machines.' },
+  { id:'gx-305gs-8',    familyId:'flexlite-gx',    name:'GX 305GS 8m',      sku:'GX305GS8',      category:'Welding torch',   desc:'Gas-cooled 300 A MIG/MAG welding gun with Euro connector, 8 m cable. For larger machines.' },
+  { id:'gx-305ws-6',    familyId:'flexlite-gx',    name:'GX 305WS 6m',      sku:'GX305WS6',      category:'Welding torch',   desc:'Water-cooled 250 A MIG/MAG welding gun with Euro connector, 6 m cable.' },
+  { id:'gx-405ws-6',    familyId:'flexlite-gx',    name:'GX 405WS 6m',      sku:'GX405WS6',      category:'Welding torch',   desc:'Water-cooled 400 A MIG/MAG welding gun with Euro connector, 6 m cable. Heavy-duty production use.' },
+  { id:'gx-405ws-8',    familyId:'flexlite-gx',    name:'GX 405WS 8m',      sku:'GX405WS8',      category:'Welding torch',   desc:'Water-cooled 400 A MIG/MAG welding gun with Euro connector, 8 m cable. Heavy-duty production use.' },
+  // — Flexlite GXe (improved MIG/MAG torches) —————————————————————
+  { id:'gxe-305g-35',   familyId:'flexlite-gxe',   name:'GXe 305G 3.5m',    sku:'GXE305G35',     category:'Welding torch',   desc:'Gas-cooled 300 A MIG/MAG torch with Euro connector and optimised ergonomics, 3.5 m cable.' },
+  { id:'gxe-305g-5',    familyId:'flexlite-gxe',   name:'GXe 305G 5m',      sku:'GXE305G5',      category:'Welding torch',   desc:'Gas-cooled 300 A MIG/MAG torch with Euro connector and optimised ergonomics, 5 m cable.' },
+  { id:'gxe-305w-35',   familyId:'flexlite-gxe',   name:'GXe 305W 3.5m',    sku:'GXE305W35',     category:'Welding torch',   desc:'Water-cooled 300 A MIG/MAG torch with Euro connector, 3.5 m cable.' },
+  { id:'gxe-305w-5',    familyId:'flexlite-gxe',   name:'GXe 305W 5m',      sku:'GXE305W5',      category:'Welding torch',   desc:'Water-cooled 300 A MIG/MAG torch with Euro connector, 5 m cable.' },
+  // — Flexlite GF (fume extraction MIG/MAG torches) ———————————————
+  { id:'gf-303g-35',    familyId:'flexlite-gf',    name:'GF 303G 3.5m',     sku:'GF303G35',      category:'Welding torch',   desc:'Gas-cooled 300 A fume extraction MIG/MAG torch with Euro connector, 3.5 m cable.' },
+  { id:'gf-303g-5',     familyId:'flexlite-gf',    name:'GF 303G 5m',       sku:'GF303G5',       category:'Welding torch',   desc:'Gas-cooled 300 A fume extraction MIG/MAG torch with Euro connector, 5 m cable.' },
+  { id:'gf-303w-35',    familyId:'flexlite-gf',    name:'GF 303W 3.5m',     sku:'GF303W35',      category:'Welding torch',   desc:'Water-cooled 300 A fume extraction MIG/MAG torch with Euro connector, 3.5 m cable.' },
+  { id:'gf-303w-5',     familyId:'flexlite-gf',    name:'GF 303W 5m',       sku:'GF303W5',       category:'Welding torch',   desc:'Water-cooled 300 A fume extraction MIG/MAG torch with Euro connector, 5 m cable.' },
+  { id:'gf-403g-35',    familyId:'flexlite-gf',    name:'GF 403G 3.5m',     sku:'GF403G35',      category:'Welding torch',   desc:'Gas-cooled 400 A fume extraction MIG/MAG torch with Euro connector, 3.5 m cable.' },
+  { id:'gf-403g-5',     familyId:'flexlite-gf',    name:'GF 403G 5m',       sku:'GF403G5',       category:'Welding torch',   desc:'Gas-cooled 400 A fume extraction MIG/MAG torch with Euro connector, 5 m cable.' },
+  { id:'gf-403w-35',    familyId:'flexlite-gf',    name:'GF 403W 3.5m',     sku:'GF403W35',      category:'Welding torch',   desc:'Water-cooled 400 A fume extraction MIG/MAG torch with Euro connector, 3.5 m cable.' },
+  { id:'gf-403w-5',     familyId:'flexlite-gf',    name:'GF 403W 5m',       sku:'GF403W5',       category:'Welding torch',   desc:'Water-cooled 400 A fume extraction MIG/MAG torch with Euro connector, 5 m cable.' },
+  // — Flexlite TX (TIG torches) ————————————————————————————————————
+  { id:'tx-165g-4',     familyId:'flexlite-tx',    name:'TX 165G 4m',       sku:'TX165G4',       category:'Welding torch',   desc:'Gas-cooled 160 A TIG welding torch with large torch head, 4 m cable.' },
+  { id:'tx-165g-8',     familyId:'flexlite-tx',    name:'TX 165G 8m',       sku:'TX165G8',       category:'Welding torch',   desc:'Gas-cooled 160 A TIG welding torch with large torch head, 8 m cable.' },
+  { id:'tx-165gs-8',    familyId:'flexlite-tx',    name:'TX 165GS 8m',      sku:'TX165GS8',      category:'Welding torch',   desc:'Gas-cooled 160 A TIG torch with S neck and small torch head, 8 m cable.' },
+  { id:'tx-165gf-8',    familyId:'flexlite-tx',    name:'TX 165GF 8m',      sku:'TX165GF8',      category:'Welding torch',   desc:'Gas-cooled 160 A TIG torch with flex neck and large torch head, 8 m cable.' },
+  { id:'tx-225g-8',     familyId:'flexlite-tx',    name:'TX 225G 8m',       sku:'TX225G8',       category:'Welding torch',   desc:'Gas-cooled 220 A TIG welding torch with large torch head, 8 m cable.' },
+  { id:'tx-225g-16',    familyId:'flexlite-tx',    name:'TX 225G 16m',      sku:'TX225G16',      category:'Welding torch',   desc:'Gas-cooled 220 A TIG welding torch with large torch head, 16 m cable.' },
+  { id:'tx-225gs-8',    familyId:'flexlite-tx',    name:'TX 225GS 8m',      sku:'TX225GS8',      category:'Welding torch',   desc:'Gas-cooled 220 A TIG torch with S neck and large torch head, 8 m cable.' },
+  { id:'tx-225gf-8',    familyId:'flexlite-tx',    name:'TX 225GF 8m',      sku:'TX225GF8',      category:'Welding torch',   desc:'Gas-cooled 220 A TIG torch with flex neck and large torch head, 8 m cable.' },
+  { id:'tx-225gfl-8',   familyId:'flexlite-tx',    name:'TX 225GFL 8m',     sku:'TX225GFL8',     category:'Welding torch',   desc:'Gas-cooled 220 A TIG torch with flexible lockable neck and large torch head, 8 m cable.' },
+  // — Flexlite GXe-C (cobot torches) ——————————————————————————————
+  { id:'gxec-355g-0d-35',  familyId:'flexlite-gxe-c', name:'GXe-C 355G 0D 3.5m',  sku:'GXEC355G0D35',  category:'Welding torch', desc:'Gas-cooled 350 A cobot MIG/MAG torch, 0° neck, three function buttons, 3.5 m cable.' },
+  { id:'gxec-355g-0d-5',   familyId:'flexlite-gxe-c', name:'GXe-C 355G 0D 5m',    sku:'GXEC355G0D5',   category:'Welding torch', desc:'Gas-cooled 350 A cobot MIG/MAG torch, 0° neck, three function buttons, 5 m cable.' },
+  { id:'gxec-355g-22d-35', familyId:'flexlite-gxe-c', name:'GXe-C 355G 22D 3.5m', sku:'GXEC355G22D35', category:'Welding torch', desc:'Gas-cooled 350 A cobot MIG/MAG torch, 22° neck, three function buttons, 3.5 m cable.' },
+  { id:'gxec-355g-22d-5',  familyId:'flexlite-gxe-c', name:'GXe-C 355G 22D 5m',   sku:'GXEC355G22D5',  category:'Welding torch', desc:'Gas-cooled 350 A cobot MIG/MAG torch, 22° neck, three function buttons, 5 m cable.' },
+  { id:'gxec-355g-35d-35', familyId:'flexlite-gxe-c', name:'GXe-C 355G 35D 3.5m', sku:'GXEC355G35D35', category:'Welding torch', desc:'Gas-cooled 350 A cobot MIG/MAG torch, 35° neck, three function buttons, 3.5 m cable.' },
+  { id:'gxec-355g-35d-5',  familyId:'flexlite-gxe-c', name:'GXe-C 355G 35D 5m',   sku:'GXEC355G35D5',  category:'Welding torch', desc:'Gas-cooled 350 A cobot MIG/MAG torch, 35° neck, three function buttons, 5 m cable.' },
 ];
 
 // ── CONTENT ITEMS (articles, FAQs, docs) ─────────────────────────────
@@ -1289,6 +1365,11 @@ const FAMILY_IMAGES = {
   'master-m':         _ch(2185466),
   'master-m-205-323': _ch(2182268),
   'x5-fastmig':       _ch(2191605),
+  'flexlite-gx':      _ch(4448578),
+  'flexlite-gxe':     _ch(4529999),
+  'flexlite-gf':      _ch(2170104),
+  'flexlite-tx':      _ch(4527731),
+  'flexlite-gxe-c':   _ch(8820598),
 };
 // Per-product overrides (wire feeders get their own image)
 const PRODUCT_IMAGES = {
@@ -1494,8 +1575,33 @@ const AI_FLOWS = {
   torch: {
     msg: 'Kemppi offers a comprehensive range of welding torches for both MIG/MAG and TIG processes. Which type are you looking for?',
     chips: [
-      { label: 'MIG/MAG welding torch', search: 'mig torch' },
-      { label: 'TIG torch',             search: 'tig torch' },
+      { label: 'MIG/MAG torch',          next: 'torchMIG' },
+      { label: 'TIG torch',              next: 'torchTIG' },
+      { label: 'Fume extraction torch',  next: 'torchFume' },
+    ]
+  },
+  torchMIG: {
+    msg: 'The Flexlite GX and GXe are our professional MIG/MAG torch families — air- and water-cooled models from 250 to 405 A, designed for demanding manual and semi-automatic welding:',
+    products: ['flexlite-gx', 'flexlite-gxe'],
+    chips: [
+      { label: 'See all MIG/MAG torches', search: 'mig torch' },
+      { label: 'Show documentation',      showDocs: 'mig operating manual', search: 'mig operating manual' },
+    ]
+  },
+  torchTIG: {
+    msg: 'The Flexlite TX range covers gas-cooled TIG torches from 160 to 220 A, with multiple neck styles — straight, S-neck, flex and lockable flex — for access in any joint configuration:',
+    products: ['flexlite-tx'],
+    chips: [
+      { label: 'See all TIG torches',   search: 'tig torch' },
+      { label: 'Show documentation',    showDocs: 'tig operating manual', search: 'tig operating manual' },
+    ]
+  },
+  torchFume: {
+    msg: 'The Flexlite GF fume extraction torches remove welding fumes directly at the nozzle — without disturbing the shielding gas flow. Available in 300 and 400 A, gas- and water-cooled:',
+    products: ['flexlite-gf'],
+    chips: [
+      { label: 'See all fume extraction torches', search: 'fume extraction torch' },
+      { label: 'Show documentation',              showDocs: 'mig operating manual', search: 'mig operating manual' },
     ]
   },
   wireFeeder: {
@@ -1503,7 +1609,7 @@ const AI_FLOWS = {
     products: ['x5-fastmig'],
     chips: [
       { label: 'See all wire feeder products', search: 'wire feeder' },
-      { label: 'Find documentation',           search: 'x5 wire feeder manual' },
+      { label: 'Show documentation',           showDocs: 'x5 wire feeder', search: 'x5 wire feeder manual' },
     ]
   },
   accessories: {
@@ -1516,17 +1622,17 @@ const AI_FLOWS = {
   mig: {
     msg: 'For MIG/MAG welding, these product families cover the full range from portable job-site machines to high-volume industrial systems:',
     products: ['minarcmig-auto', 'master-m', 'x5-fastmig'],
-    chips: [{ label: 'See all MIG/MAG products', search: 'mig mag' }, { label: 'Find documentation', search: 'mig operating manual' }]
+    chips: [{ label: 'See all MIG/MAG products', search: 'mig mag' }, { label: 'Show documentation', showDocs: 'mig operating manual', search: 'mig operating manual' }]
   },
   tig: {
     msg: 'For TIG welding, our range spans compact portable DC machines through to professional AC/DC systems for demanding aluminium and stainless work:',
     products: ['minarc-t', 'minarc-t-dc', 'minarctig'],
-    chips: [{ label: 'See all TIG products', search: 'tig' }, { label: 'Find documentation', search: 'tig operating manual' }]
+    chips: [{ label: 'See all TIG products', search: 'tig' }, { label: 'Show documentation', showDocs: 'tig operating manual', search: 'tig operating manual' }]
   },
   mma: {
     msg: 'For Stick (MMA) welding, the Minarc family has been trusted by professionals for decades — built tough for both site and workshop environments:',
     products: ['minarc', 'minarc-evo'],
-    chips: [{ label: 'See all Stick (MMA) products', search: 'mma' }, { label: 'Find documentation', search: 'minarc operating manual' }]
+    chips: [{ label: 'See all Stick (MMA) products', search: 'mma' }, { label: 'Show documentation', showDocs: 'minarc operating manual', search: 'minarc operating manual' }]
   },
   notSure: {
     msg: 'No problem. To point you in the right direction — is portability a key requirement for your work?',
@@ -1538,12 +1644,12 @@ const AI_FLOWS = {
   portable: {
     msg: 'For professionals on the move, the Minarc range offers an excellent balance of portability, durability and welding performance across MMA and MIG/MAG processes:',
     products: ['minarc', 'minarc-evo', 'minarcmig-auto'],
-    chips: [{ label: 'See all portable welders', search: 'minarc' }, { label: 'Find documentation', search: 'minarc operating manual' }]
+    chips: [{ label: 'See all portable welders', search: 'minarc' }, { label: 'Show documentation', showDocs: 'minarc operating manual', search: 'minarc operating manual' }]
   },
   workshop: {
     msg: 'For workshop and production environments, these systems deliver the arc performance, process flexibility and connectivity that demanding industrial applications require:',
     products: ['master-m', 'x5-fastmig'],
-    chips: [{ label: 'See all workshop machines', search: 'workshop' }, { label: 'Find documentation', search: 'master operating manual' }]
+    chips: [{ label: 'See all workshop machines', search: 'workshop' }, { label: 'Show documentation', showDocs: 'master operating manual', search: 'master operating manual' }]
   },
 
   /* ── PATH 2: Product information ─────────────────────────────── */
@@ -1559,22 +1665,22 @@ const AI_FLOWS = {
   infoMinarc: {
     msg: 'The Minarc range is built for professionals who need reliable portable MMA welding in demanding conditions. Light, impact resistant and equally at home on a construction site or in a workshop.',
     products: ['minarc', 'minarc-evo'],
-    chips: [{ label: 'Explore the Minarc range', search: 'minarc' }, { label: 'Find documentation', search: 'minarc manual' }]
+    chips: [{ label: 'Explore the Minarc range', search: 'minarc' }, { label: 'Show documentation', showDocs: 'minarc', search: 'minarc manual' }]
   },
   infoMaster: {
     msg: 'Master M sets a benchmark for compact MIG/MAG performance. Intelligent welding parameter control, fast set-up and a consistent arc make it a trusted choice for production welding.',
     products: ['master-m', 'master-m-205-323'],
-    chips: [{ label: 'Explore the Master M range', search: 'master m' }, { label: 'Find documentation', search: 'master manual' }]
+    chips: [{ label: 'Explore the Master M range', search: 'master m' }, { label: 'Show documentation', showDocs: 'master', search: 'master manual' }]
   },
   infoX5: {
     msg: 'The X5 FastMig is our flagship modular welding system — engineered for high-volume industrial MIG/MAG production with full process flexibility, advanced data connectivity and a 360-degree modular design.',
     products: ['x5-fastmig'],
-    chips: [{ label: 'Explore the X5 FastMig system', search: 'x5 fastmig' }, { label: 'Find documentation', search: 'x5 manual' }]
+    chips: [{ label: 'Explore the X5 FastMig system', search: 'x5 fastmig' }, { label: 'Show documentation', showDocs: 'x5', search: 'x5 manual' }]
   },
   infoMinarcmig: {
     msg: 'The MinarcMig Auto brings professional-grade MIG/MAG performance to a genuinely portable package — synergic welding intelligence combined with a compact, lightweight design that goes wherever the work is.',
     products: ['minarcmig-auto'],
-    chips: [{ label: 'Explore the MinarcMig Auto', search: 'minarcmig' }, { label: 'Find documentation', search: 'minarcmig manual' }]
+    chips: [{ label: 'Explore the MinarcMig Auto', search: 'minarcmig' }, { label: 'Show documentation', showDocs: 'minarcmig', search: 'minarcmig manual' }]
   },
 
   /* ── PATH 3: Contact ─────────────────────────────────────────── */
@@ -1666,9 +1772,58 @@ function showFamilyDetail(fam) {
     appendAIMessage(escHtml(fam.desc), false);
     const models = PRODUCTS.filter(p => p.familyId === fam.id).slice(0, 6);
     if (models.length) appendAIModelList(models);
-    renderAIChips([{ label: 'See all ' + fam.name + ' products', search: fam.name }]);
+    renderAIChips([
+      { label: 'See all ' + fam.name + ' products', search: fam.name },
+      { label: 'Show documentation', showDocs: fam.name.toLowerCase(), search: fam.name.toLowerCase() + ' manual' },
+    ]);
     document.getElementById('ai-input').focus();
   }, 1000);
+}
+
+function appendAIDocs(query, thenSearch) {
+  // Filter CONTENT_ITEMS for docs matching the query keywords
+  const terms = query.toLowerCase().split(/\s+/);
+  const docs = CONTENT_ITEMS
+    .filter(d => d.type === 'doc' || d.type === 'faq')
+    .filter(d => {
+      const hay = (d.name + ' ' + d.desc + ' ' + (d.tags||[]).join(' ')).toLowerCase();
+      return terms.some(t => hay.includes(t));
+    })
+    .slice(0, 4);
+
+  if (!docs.length) return;
+
+  const row = document.createElement('div');
+  row.className = 'ai-msg-row';
+  const container = document.createElement('div');
+  container.className = 'ai-doc-cards';
+
+  const docIconSVG = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.7)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>`;
+
+  docs.forEach((doc, i) => {
+    const card = document.createElement('div');
+    card.className = 'ai-doc-card';
+    card.style.opacity = '0';
+    card.style.transform = 'translateY(8px)';
+    const tagLabel = (doc.tags || [doc.category || 'PDF'])[0];
+    card.innerHTML = `
+      <div class="ai-doc-card-icon">${docIconSVG}</div>
+      <div class="ai-doc-card-body">
+        <div class="ai-doc-card-name">${escHtml(doc.name)}</div>
+        <div class="ai-doc-card-tag">${escHtml(tagLabel)}</div>
+      </div>`;
+    container.appendChild(card);
+    setTimeout(() => { card.style.opacity = '1'; card.style.transform = 'translateY(0)'; }, i * 120);
+  });
+
+  row.appendChild(container);
+  document.getElementById('ai-messages').appendChild(row);
+
+  // Follow-up chip to see all in search
+  setTimeout(() => {
+    renderAIChips([{ label: 'See all documentation in search', search: thenSearch || query }]);
+    document.getElementById('ai-input').focus();
+  }, docs.length * 120 + 200);
 }
 
 function appendAIModelList(models) {
@@ -1679,11 +1834,51 @@ function appendAIModelList(models) {
   models.forEach(m => {
     const item = document.createElement('div');
     item.className = 'ai-model-item';
-    item.innerHTML = `<span class="ai-model-name">${escHtml(m.name)}</span><span class="ai-model-sku">${escHtml(m.sku)}</span>`;
+    item.innerHTML = `<span class="ai-model-name">${escHtml(m.name)}</span><span class="ai-model-sku">${escHtml(m.sku)}</span><span class="ai-model-chevron">›</span>`;
+    item.addEventListener('click', () => showProductDetail(m));
     list.appendChild(item);
   });
   row.appendChild(list);
   document.getElementById('ai-messages').appendChild(row);
+}
+
+function showProductDetail(product) {
+  appendAIMessage(product.name, true);
+  document.getElementById('ai-chips').innerHTML = '';
+  const typingId = 'ai-typing-' + Date.now();
+  appendAIMessage(`<div class="ai-typing-dots" id="${typingId}"><span></span><span></span><span></span></div>`, false);
+  setTimeout(() => {
+    const el = document.getElementById(typingId);
+    if (el) el.closest('.ai-msg-row').remove();
+
+    // Render inline product detail card
+    const fam = FAMILIES.find(f => f.id === product.familyId) || {};
+    const imgUrl = getItemImg(product, 120) || getItemImg(fam, 120);
+    const imgHTML = imgUrl ? `<div style="width:80px;height:80px;flex-shrink:0;background:#f0f0f0;border-radius:10px;overflow:hidden;display:flex;align-items:center;justify-content:center"><img src="${imgUrl}" alt="${escHtml(product.name)}" style="width:100%;height:100%;object-fit:contain;mix-blend-mode:multiply"></div>` : '';
+    const row = document.createElement('div');
+    row.className = 'ai-msg-row';
+    const detail = document.createElement('div');
+    detail.className = 'ai-product-detail';
+    detail.style.display = 'flex';
+    detail.style.gap = '14px';
+    detail.style.alignItems = 'flex-start';
+    detail.innerHTML = `
+      ${imgHTML}
+      <div>
+        <div class="ai-product-detail-name">${escHtml(product.name)}</div>
+        <div class="ai-product-detail-meta">${escHtml(product.sku)}${fam.weldType ? ' · ' + escHtml(fam.weldType) : ''}</div>
+        <div class="ai-product-detail-desc">${escHtml(product.desc || fam.desc || '')}</div>
+      </div>`;
+    row.appendChild(detail);
+    document.getElementById('ai-messages').appendChild(row);
+
+    // Offer to see the family or search
+    renderAIChips([
+      { label: 'See all ' + (fam.name || 'products') + ' products', search: fam.name || product.name },
+      { label: 'Show documentation', showDocs: (fam.name || product.name).toLowerCase(), search: (fam.name || product.name).toLowerCase() + ' manual' },
+    ]);
+    document.getElementById('ai-input').focus();
+  }, 1000);
 }
 
 function appendAIMessage(content, isUser) {
@@ -1713,6 +1908,16 @@ function renderAIChips(chips) {
       wrap.innerHTML = '';
       if (chip.url) {
         window.open(chip.url, '_blank');
+      } else if (chip.showDocs) {
+        // Show doc cards inline with a typing delay
+        const typingId = 'ai-typing-' + Date.now();
+        appendAIMessage(`<div class="ai-typing-dots" id="${typingId}"><span></span><span></span><span></span></div>`, false);
+        setTimeout(() => {
+          const el = document.getElementById(typingId);
+          if (el) el.closest('.ai-msg-row').remove();
+          appendAIMessage('Here are the most relevant documentation resources:', false);
+          appendAIDocs(chip.showDocs, chip.search || chip.showDocs);
+        }, 1000);
       } else if (chip.search) {
         openResultsPage(chip.search);
       } else if (chip.next) {
